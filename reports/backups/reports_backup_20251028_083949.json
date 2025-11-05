@@ -1,0 +1,48 @@
+[
+  {
+    "site_name": "Test Site",
+    "site_url": "https://test.com",
+    "issue_type": "site_not_loading",
+    "description": "Test report",
+    "server_timestamp": "2025-10-28T08:34:24.897299",
+    "client_ip": "127.0.0.1"
+  },
+  {
+    "site_name": "Test Site 2",
+    "site_url": "https://test2.com",
+    "issue_type": "site_blocked",
+    "description": "Another test report",
+    "server_timestamp": "2025-10-28T08:37:16.450478",
+    "client_ip": "127.0.0.1"
+  },
+  {
+    "site_name": "Seattle Business Magazine",
+    "site_url": "https://seattlebusinessmag.com/",
+    "issue_type": "site_not_loading",
+    "description": "test",
+    "timestamp": "2025-10-28T15:38:05.533Z",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:144.0) Gecko/20100101 Firefox/144.0",
+    "report_id": "report_1761665885533_trq3f83h4",
+    "server_timestamp": "2025-10-28T08:38:05.536296",
+    "client_ip": "127.0.0.1"
+  },
+  {
+    "site_name": "Test Site 3",
+    "site_url": "https://test3.com",
+    "issue_type": "content_issues",
+    "description": "Testing after server restart",
+    "server_timestamp": "2025-10-28T08:38:55.000575",
+    "client_ip": "127.0.0.1"
+  },
+  {
+    "site_name": "Seattle Business Magazine",
+    "site_url": "https://seattlebusinessmag.com/",
+    "issue_type": "site_not_loading",
+    "description": "test",
+    "timestamp": "2025-10-28T15:39:14.618Z",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:144.0) Gecko/20100101 Firefox/144.0",
+    "report_id": "report_1761665954618_6ip0ya1x8",
+    "server_timestamp": "2025-10-28T08:39:14.621588",
+    "client_ip": "127.0.0.1"
+  }
+]

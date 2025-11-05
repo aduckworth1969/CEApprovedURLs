@@ -1,0 +1,802 @@
+{
+  "https://www.360training.com/course/osha-10-hour-outreach-general-industry-free-study-guide": {
+    "description": "Get your OSHA 10-hour General Industry Certificate with 360training®. Top provider since 1997. Engaging course & free study guide. Get your DOL card!",
+    "title": "OSHA 10-Hour General Industry | Certificate & Training",
+    "meta_description": "Get your OSHA 10-hour General Industry Certificate with 360training®. Top provider since 1997. Engaging course & free study guide. Get your DOL card!",
+    "status": "success",
+    "timestamp": "2025-10-28T10:08:31.891649"
+  },
+  "https://www.aaalac.org/": {
+    "description": "AAALAC International promotes the humane treatment of animals in science through voluntary accreditation and assessment programs. AAALAC is the largest international accreditation program for animal research, teaching and testing programs.",
+    "title": "AAALAC - AAALAC",
+    "meta_description": "AAALAC International promotes the humane treatment of animals in science through voluntary accreditation and assessment programs. AAALAC is the largest international accreditation program for animal research, teaching and testing programs.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:08:36.689409"
+  },
+  "https://aaha.org/": {
+    "description": "Educational website (aaha.org)",
+    "title": "AAHA",
+    "meta_description": "",
+    "status": "error",
+    "error": "403 Client Error: Forbidden for url: https://aaha.org/",
+    "timestamp": "2025-10-28T10:08:38.864626"
+  },
+  "https://www.aalas.org/": {
+    "description": "Educational resource website (www.aalas.org)",
+    "title": "AALAS",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:08:42.023646"
+  },
+  "https://This Website was removed from Incarcerated Education Access on 2/26/2025 per IN557917": {
+    "description": "Educational resource (This Website was removed from Incarcerated Education Access on 2)",
+    "title": "Academia - REMOVED per IN557917",
+    "meta_description": "",
+    "status": "error",
+    "error": "Failed to parse: 'this%20website%20was%20removed%20from%20incarcerated%20education%20access%20on%202', label empty or too long",
+    "timestamp": "2025-10-28T10:08:43.276986"
+  },
+  "https://accuplacer.org": {
+    "description": "<h1>ACCUPLACER Platform for Institutions – The College Board</h1> <br/>Login to the platform. Access is granted to accredited, degree-granting institutions and public departments of national, state and system educational governance.",
+    "title": "ACCUPLACER Platform for Institutions – The College Board",
+    "meta_description": "<h1>ACCUPLACER Platform for Institutions – The College Board</h1> <br/>Login to the platform. Access is granted to accredited, degree-granting institutions and public departments of national, state and system educational governance.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:08:46.337507"
+  },
+  "https://battlefields.org/": {
+    "description": "American Battlefield Trust This Day in History",
+    "title": "American Battlefield Trust | Preserving Hallowed Battlegrounds",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:08:48.727936"
+  },
+  "https://americanrhetoric.com/": {
+    "description": "Site dedicated to Public Rhetoric, political, social, movie and religious speeches and related concepts of and exercises in rhetoric.",
+    "title": "American Rhetoric: The Power of Oratory in the United States",
+    "meta_description": "Site dedicated to Public Rhetoric, political, social, movie and religious speeches and related concepts of and exercises in rhetoric.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:08:50.785810"
+  },
+  "https://animalendocrine.com/": {
+    "description": "Specializing in feline thyroid treatment, Hypurrcat offers advanced, compassionate care for hyperthyroid cats. Located in NYC, schedule an appointment today.",
+    "title": "Hypurrcat | The Animal Endocrine Clinic | Expert Feline Thyroid Care — Book Now",
+    "meta_description": "Specializing in feline thyroid treatment, Hypurrcat offers advanced, \r\ncompassionate care for hyperthyroid cats. Located in NYC, schedule an \r\nappointment today.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:08:52.836807"
+  },
+  "https://www.aphis.usda.gov/": {
+    "description": "Educational website (www.aphis.usda.gov)",
+    "title": "APHIS USDA",
+    "meta_description": "",
+    "status": "error",
+    "error": "HTTPSConnectionPool(host='www.aphis.usda.gov', port=443): Read timed out. (read timeout=10)",
+    "timestamp": "2025-10-28T10:09:05.323358"
+  },
+  "https://arxiv.org/": {
+    "description": "Physics Mathematics",
+    "title": "arXiv.org e-Print archive",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:06.638974"
+  },
+  "https://apnews.com/": {
+    "description": "Read the latest headlines, breaking news, and videos at APNews.com, the definitive source for independent journalism from every corner of the globe.",
+    "title": "Associated Press News: Breaking News, Latest Headlines and Videos | AP News",
+    "meta_description": "Read the latest headlines, breaking news, and videos at APNews.com, the definitive source for independent journalism from every corner of the globe.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:08.635175"
+  },
+  "https://avdt.us/": {
+    "description": "History",
+    "title": "Home | AVDT",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:10.956638"
+  },
+  "https://avecct.org/": {
+    "description": "Educational website (avecct.org)",
+    "title": "AVECCT",
+    "meta_description": "",
+    "status": "error",
+    "error": "HTTPSConnectionPool(host='avecct.org', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, \"[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'avecct.org'. (_ssl.c:1028)\")))",
+    "timestamp": "2025-10-28T10:09:12.800857"
+  },
+  "https://avma.org/": {
+    "description": "Educational resource website (avma.org)",
+    "title": "",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:15.814370"
+  },
+  "https://www.avtaa-vts.org/": {
+    "description": "AVTAA Academy of Veterinary Technicians in Anesthesia and Analgesia home page. Animals require anesthesia for surgery and invasive procedures on a daily basis. The veterinary technician specialist in anesthesia is there to provide your pet with exceptional anesthetic care before, during and after...",
+    "title": "Home - Academy of Veterinary Technicians in Anes and Analgesia, AVTAA",
+    "meta_description": "AVTAA Academy of Veterinary Technicians in Anesthesia and Analgesia home page. Animals require anesthesia for surgery and invasive procedures on a daily basis. The veterinary technician specialist in anesthesia is there to provide your pet with exceptional anesthetic care before, during and after the procedure.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:18.720629"
+  },
+  "https://plus.aztecsoftware.com/": {
+    "description": "Chrome is the official web browser from Google, built to be fast, secure, and customizable. Download now and make it yours.",
+    "title": "Google Chrome - The Fast & Secure Web Browser Built to be Yours",
+    "meta_description": "Chrome is the official web browser from Google, built to be fast, secure, and customizable. Download now and make it yours.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:21.014326"
+  },
+  "https://azvt.org/": {
+    "description": "2025 Sponsors ASSOCIATION OFZOOLOGICALVETERINARY TECHNICIANS",
+    "title": "AZVT - Association of Zoological Veterinary Technicians - Home",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:23.529052"
+  },
+  "https://app.boardworkseducation.com/": {
+    "description": "Educational resource website (app.boardworkseducation.com)",
+    "title": "Boardworks",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:26.634319"
+  },
+  "https://bls.gov/": {
+    "description": "Educational website (bls.gov)",
+    "title": "Bureau Of Labor Statistics",
+    "meta_description": "",
+    "status": "error",
+    "error": "HTTPSConnectionPool(host='bls.gov', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, \"[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'bls.gov'. (_ssl.c:1028)\")))",
+    "timestamp": "2025-10-28T10:09:27.843038"
+  },
+  "https://business.wa.gov/": {
+    "description": "This is the official state of Washington website for businesses, providing simple, step-by-step instructions on how to start, run and grow a business in Washington state. Here you will find a Road Map for opening a business, the Small Business Guide which includes details on planing, hiring emplo...",
+    "title": "Small Business Guidance (Home)",
+    "meta_description": "This is the official state of Washington website for businesses, providing simple, step-by-step instructions on how to start, run and grow a business in Washington state. Here you will find a Road Map for opening a business, the Small Business Guide which includes details on planing, hiring employees, financing, licensing, payroll calculators, and much more. We provide new and established business owners with all the information you need to properly register your business so you can focus your energy on what really matters, running and growing your business.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:31.194356"
+  },
+  "https://careercruising.com": {
+    "description": "Website: Career Cruising - English - Home",
+    "title": "Career Cruising\n\t\t\t\t - English\n\t\t- Home",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:33.451324"
+  },
+  "https://catvets.com/": {
+    "description": "Feline Veterinary Medical Association New & Upcoming",
+    "title": "Homepage - catvets.com",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:36.120354"
+  },
+  "https://centralia.edu/": {
+    "description": "TRAILBLAZERS WANTED FOOD SECURITY EVENT SERIES",
+    "title": "Centralia College",
+    "meta_description": "Home Page",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:38.503056"
+  },
+  "https://us06web.zoom.us/rec/share/4igPhAIR7Uk-GG0CAMAxF9JNSzWp9e0KEL3UsLeAY91KATexu4rra1XyDFDkyROO.Yf3sxxA0VMMoicc6": {
+    "description": "Zoom is the leader in modern enterprise video communications, with an easy, reliable cloud platform for video and audio conferencing, chat, and webinars across mobile, desktop, and room systems. Zoom Rooms is the original software-based conference room solution used around the world in board, con...",
+    "title": "Video Conferencing, Web Conferencing, Webinars, Screen Sharing - Zoom",
+    "meta_description": "Zoom is the leader in modern enterprise video communications, with an easy, reliable cloud platform for video and audio conferencing, chat, and webinars across mobile, desktop, and room systems. Zoom Rooms is the original software-based conference room solution used around the world in board, conference, huddle, and training rooms, as well as executive offices and classrooms. Founded in 2011, Zoom helps businesses and organizations bring their teams together in a frictionless environment to get more done. Zoom is a publicly traded company headquartered in San Jose, CA.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:41.770166"
+  },
+  "https://www.codingame.com/": {
+    "description": "CodinGame is a challenge-based training platform for programmers where you can play with the hottest programming topics. Solve games, code AI bots, learn from your peers, have fun.",
+    "title": "Coding Games and Programming Challenges to Code Better",
+    "meta_description": "CodinGame is a challenge-based training platform for programmers where you can play with the hottest programming topics. Solve games, code AI bots, learn from your peers, have fun.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:44.846628"
+  },
+  "https://www.coderbyte.com/": {
+    "description": "Evaluate your AI-powered workforce quickly, accurately, and affordably with unlimited technical assessments and interviews.",
+    "title": "Coderbyte | Screen, Interview, & Upskill",
+    "meta_description": "Evaluate your AI-powered workforce quickly, accurately, and affordably with unlimited technical assessments and interviews.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:48.486220"
+  },
+  "https://cjr.org/": {
+    "description": "Educational website (cjr.org)",
+    "title": "Colombia Journalism Review",
+    "meta_description": "",
+    "status": "error",
+    "error": "403 Client Error: Forbidden for url: https://cjr.org/",
+    "timestamp": "2025-10-28T10:09:50.460393"
+  },
+  "https://colorhunt.co/": {
+    "description": "Discover the newest hand-picked color palettes of Color Hunt. Get color inspiration for your design and art projects.",
+    "title": "Color Hunt - Color Palettes for Designers and Artists",
+    "meta_description": "Discover the newest hand-picked color palettes of Color Hunt. Get color inspiration for your design and art projects.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:53.068414"
+  },
+  "https://dl.correctionsed.com": {
+    "description": "Educational resource website (dl.correctionsed.com)",
+    "title": "Index of /",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:56.063263"
+  },
+  "https://correctionsed.com/": {
+    "description": "OPE (Open Prison Education) - The easiest and most secure way to setup a self hosted, prison ready Canvas LMS for both offline and cloud use.",
+    "title": "OPE Server - Self Hosted Canvas | OPE - Self Hosted Canvas LMS Server",
+    "meta_description": "OPE (Open Prison Education) - The easiest and most secure way to setup a self hosted, prison ready Canvas LMS for both offline and cloud use.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:57.958141"
+  },
+  "https://create-react-app.dev/": {
+    "description": "Create React App is deprecated. Please see react.dev for modern options.",
+    "title": "Create React App is deprecated.",
+    "meta_description": "Create React App is deprecated. Please see react.dev for modern options.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:09:59.281615"
+  },
+  "https://dea.gov/": {
+    "description": "Educational website (dea.gov)",
+    "title": "DEA",
+    "meta_description": "",
+    "status": "error",
+    "error": "403 Client Error: Forbidden for url: https://dea.gov/",
+    "timestamp": "2025-10-28T10:10:00.722241"
+  },
+  "https://dol.gov/": {
+    "description": "Website: Challenge Validation",
+    "title": "Challenge Validation",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:02.949530"
+  },
+  "https://drmartybecker.com/": {
+    "description": "\"America's Veterinarian\"",
+    "title": "Dr. Marty Becker - \"America's Veterinarian\"",
+    "meta_description": "\"America's Veterinarian\"",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:07.875293"
+  },
+  "https://deadiversion.usdoj.gov/": {
+    "description": "The mission of DEA's Diversion Control Division is to prevent, detect, and investigate the diversion of controlled pharmaceuticals and listed chemicals from legitimate sources while ensuring an adequate and uninterrupted supply for legitimate medical, commercial, and scientific needs.",
+    "title": "DEA Diversion Control Division | Home",
+    "meta_description": "The mission of DEA's Diversion Control Division is to prevent, detect, and investigate the diversion of controlled pharmaceuticals and listed chemicals from legitimate sources while ensuring an adequate and uninterrupted supply for legitimate medical, commercial, and scientific needs.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:10.777693"
+  },
+  "https://www.ebsco.com/": {
+    "description": "EBSCO is the leading provider of research databases, e-journals, magazine subscriptions, ebooks and discovery service for academic libraries, public libraries, corporations, schools, government and medical institutions",
+    "title": "EBSCO - Research Databases, EBooks, Discovery Service",
+    "meta_description": "EBSCO is the leading provider of research databases, e-journals, magazine subscriptions, ebooks and discovery service for academic libraries, public libraries, corporations, schools, government and medical institutions",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:12.592856"
+  },
+  "https://ecasas.org/": {
+    "description": "Educational website (ecasas.org)",
+    "title": "Ecasas",
+    "meta_description": "",
+    "status": "error",
+    "error": "500 Server Error: Internal Server Error for url: https://ecasas.org/",
+    "timestamp": "2025-10-28T10:10:15.110126"
+  },
+  "https://epa.gov": {
+    "description": "Website of the U.S. Environmental Protection Agency (EPA). EPA's mission is to protect human health and the environment.",
+    "title": "U.S. Environmental Protection Agency | US EPA",
+    "meta_description": "Website of the U.S. Environmental Protection Agency (EPA). EPA's mission is to protect human health and the environment.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:17.153646"
+  },
+  "https://epa.gov/": {
+    "description": "Website of the U.S. Environmental Protection Agency (EPA). EPA's mission is to protect human health and the environment.",
+    "title": "U.S. Environmental Protection Agency | US EPA",
+    "meta_description": "Website of the U.S. Environmental Protection Agency (EPA). EPA's mission is to protect human health and the environment.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:20.217588"
+  },
+  "https://dev.epicgames.com/community/unreal-engine/learning": {
+    "description": "Educational website (dev.epicgames.com)",
+    "title": "Epicgames.com",
+    "meta_description": "",
+    "status": "error",
+    "error": "403 Client Error: Forbidden for url: https://dev.epicgames.com/community/unreal-engine/learning",
+    "timestamp": "2025-10-28T10:10:21.981322"
+  },
+  "https://exchange.parchment.com/": {
+    "description": "Website: Sign in to Parchment",
+    "title": "Sign in to Parchment",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:23.555622"
+  },
+  "https://expressjs.com/": {
+    "description": "Express is a fast, unopinionated, minimalist web framework for Node.js, providing a robust set of features for web and mobile applications.",
+    "title": "Express - Node.js web application framework",
+    "meta_description": "Express is a fast, unopinionated, minimalist web framework for Node.js, providing a robust set of features for web and mobile applications.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:24.913865"
+  },
+  "https://fda.gov": {
+    "description": "Educational website (fda.gov)",
+    "title": "FDA",
+    "meta_description": "",
+    "status": "error",
+    "error": "404 Client Error: Not Found for url: https://www.fda.gov/apology_objects/abuse-detection-apology.html",
+    "timestamp": "2025-10-28T10:10:27.538709"
+  },
+  "https://fonts.google.com/": {
+    "description": "Making the web more beautiful, fast, and open through great typography",
+    "title": "Browse Fonts - Google Fonts",
+    "meta_description": "Making the web more beautiful, fast, and open through great typography",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:31.408506"
+  },
+  "https://freecodecamp.org/": {
+    "description": "Educational resource website (freecodecamp.org)",
+    "title": "",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:34.935470"
+  },
+  "https://www.fsis.usda.gov/": {
+    "description": "Educational website (www.fsis.usda.gov)",
+    "title": "FSIS USDA",
+    "meta_description": "",
+    "status": "error",
+    "error": "HTTPSConnectionPool(host='www.fsis.usda.gov', port=443): Read timed out. (read timeout=10)",
+    "timestamp": "2025-10-28T10:10:46.316127"
+  },
+  "https://app.ged.com/managerLogin": {
+    "description": "Educational resource website (app.ged.com)",
+    "title": "GED",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:48.577992"
+  },
+  "https://www.getsummath.com/": {
+    "description": "Free GED Practice Problems! Free GED Math practice, free GED Science practice, free GED RLA practice and free GED Social Studies practice at Get Sum Math – one of the best online GED study platforms!",
+    "title": "Free GED Practice Problems | Get Sum Math",
+    "meta_description": "Free GED Practice Problems!  Free GED Math practice, free GED Science practice, free GED RLA practice and free GED Social Studies practice at Get Sum Math –  one of the best online GED study platforms!",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:49.890503"
+  },
+  "https://github.com/": {
+    "description": "Join the world's most widely adopted, AI-powered developer platform where millions of developers, businesses, and the largest open source community build software that advances humanity.",
+    "title": "GitHub · Change is constant. GitHub keeps you ahead. · GitHub",
+    "meta_description": "Join the world's most widely adopted, AI-powered developer platform where millions of developers, businesses, and the largest open source community build software that advances humanity.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:51.885262"
+  },
+  "https://docs.google.com/": {
+    "description": "Sign in",
+    "title": "Sign in - Google Accounts",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:54.896904"
+  },
+  "https://ghc.edu/": {
+    "description": "Website Feedback",
+    "title": "Grays Harbor College",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:10:58.113869"
+  },
+  "https://www.g-wlearning.com/": {
+    "description": "Push your learning experience beyond the classroom with companion resources supporting many Goodheart-Willcox textbooks.",
+    "title": "G-W Learning",
+    "meta_description": "Push your learning experience beyond the classroom with companion resources supporting many Goodheart-Willcox textbooks.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:01.789390"
+  },
+  "https://www.g-w.com/": {
+    "description": "Explore a wide range of digital and print resources that build skills for life. G-W provides innovative solutions for Career and Technical Education plus Health and Physical Education.",
+    "title": "New Print and Digital Resources for CTE, Trades, Health, PE - Goodheart-Willcox",
+    "meta_description": "Explore a wide range of digital and print resources that build skills for life. G-W provides innovative solutions for Career and Technical Education plus Health and Physical Education.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:04.608042"
+  },
+  "https://g-wonlinetextbooks.com/": {
+    "description": "Educational website (g-wonlinetextbooks.com)",
+    "title": "G-W Textbooks",
+    "meta_description": "",
+    "status": "error",
+    "error": "HTTPSConnectionPool(host='g-wonlinetextbooks.com', port=443): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x12044bb10>: Failed to establish a new connection: [Errno 61] Connection refused'))",
+    "timestamp": "2025-10-28T10:11:07.940124"
+  },
+  "https://hhs.gov/": {
+    "description": "Educational website (hhs.gov)",
+    "title": "HHS",
+    "meta_description": "",
+    "status": "error",
+    "error": "403 Client Error: Forbidden for url: https://www.hhs.gov/",
+    "timestamp": "2025-10-28T10:11:11.264707"
+  },
+  "https://Link is in place for mandatory entry... it is not a valid website.": {
+    "description": "Educational resource (Link is in place for mandatory entry... it is not a valid website.)",
+    "title": "IncarWorkReleaseUsers Categories",
+    "meta_description": "",
+    "status": "error",
+    "error": "Failed to parse: 'link%20is%20in%20place%20for%20mandatory%20entry...%20it%20is%20not%20a%20valid%20website.', label empty or too long",
+    "timestamp": "2025-10-28T10:11:13.448577"
+  },
+  "https://indoorpet.osu.edu/": {
+    "description": "Website: Home | Indoor Pet Initiative",
+    "title": "Home | Indoor Pet Initiative",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:15.154903"
+  },
+  "https://ire.org/": {
+    "description": "Investigative Reporters and Editors is a nonprofit dedicated to educating, training, connecting and empowering journalists around the world.",
+    "title": "Investigative Reporters & Editors - Investigative Reporters & Editors",
+    "meta_description": "Investigative Reporters and Editors is a nonprofit dedicated to educating, training, connecting and empowering journalists around the world.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:18.434375"
+  },
+  "https://irs.gov": {
+    "description": "Pay your taxes. Get your refund status. Find IRS forms and answers to tax questions. We help you understand and meet your federal tax responsibilities.",
+    "title": "Internal Revenue Service | An official website of the United States government",
+    "meta_description": "Pay your taxes. Get your refund status. Find IRS forms and answers to tax questions. We help you understand and meet your federal tax responsibilities.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:22.042133"
+  },
+  "https://pep.jstor.org/": {
+    "description": "Website: JSTOR Access in Prison",
+    "title": "JSTOR Access in Prison",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:24.530860"
+  },
+  "https://kerinmarketing.com/": {
+    "description": "Your place for marketing news in the classroom.",
+    "title": "Kerin & Hartley Marketing | Your place for marketing news in the classroom.",
+    "meta_description": "Your place for marketing news in the classroom.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:27.046902"
+  },
+  "https://khanacademy.org/": {
+    "description": "Website: Khan Academy",
+    "title": "Khan Academy",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:29.434330"
+  },
+  "https://www.lifeskillsreimagined.com/": {
+    "description": "An online life skills curriculum that learners love! Life Skills Reimagined is fun, innovative, interactive, and easy to use life skills program. Proven results in the life skills teens and adults need to know. Used by organizations in 26 states and growing. Proven to teach tangible and SEL life ...",
+    "title": "Life Skills Curriculum | Life Skills Reimagined",
+    "meta_description": "An online life skills curriculum that learners love! Life Skills Reimagined is fun, innovative, interactive, and easy to use life skills program.  Proven results in the life skills teens and adults need to know. Used by organizations in 26 states and growing. Proven to teach tangible and SEL life skills.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:32.784469"
+  },
+  "https://livingwithconviction.org/": {
+    "description": "Living with Conviction: Sentenced to Debt for Life in Washington State is a collection of portraits and profiles of formerly incarcerated people who are impacted by Washington's policy on court-imposed legal financial obligations (LFO). In Washington, LFOs accrue interest at a rate of 12% from th...",
+    "title": "Living with Conviction",
+    "meta_description": "Living with Conviction: Sentenced to Debt for Life in Washington State is a \r\ncollection of portraits and profiles of formerly incarcerated people who \r\nare impacted by Washington's policy on court-imposed legal financial \r\nobligations (LFO). In Washington, LFOs accrue interest at a rate of 12% \r\nfrom the date of sentencing.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:34.291182"
+  },
+  "https://lumion3d.net/": {
+    "description": "Educational website (lumion3d.net)",
+    "title": "Lumion",
+    "meta_description": "",
+    "status": "error",
+    "error": "HTTPSConnectionPool(host='lumion3d.net', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x120b4e350>: Failed to resolve 'lumion3d.net' ([Errno 8] nodename nor servname provided, or not known)\"))",
+    "timestamp": "2025-10-28T10:11:36.049743"
+  },
+  "https://magicschool.com/": {
+    "description": "Adam & Selina's Magic School for Youngsters is Australia's leading magic institution, offering both live training and online courses in the magic, illusion and conjuring arts. Our mission is to help youngsters build confidence and improve their lives through magic!",
+    "title": "Adam & Selina's Magic School For Youngsters | Official Site",
+    "meta_description": "Adam & Selina's Magic School for Youngsters is Australia's leading magic institution, offering both live training and online courses in the magic, illusion and conjuring arts. Our mission is to help youngsters build confidence and improve their lives through magic!",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:37.647636"
+  },
+  "https://merckvetmanual.com/": {
+    "description": "The Merck Veterinary Manual has been a trusted source of animal health information for students and practicing veterinarians. It contains authoritative guidelines for the diagnosis, treatment, and prevention of animal disorders and diseases.",
+    "title": "Merck Veterinary Manual",
+    "meta_description": "The Merck Veterinary Manual has been a trusted source of animal health information for students and practicing veterinarians. It contains authoritative guidelines for the diagnosis, treatment, and prevention of animal disorders and diseases.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:40.526882"
+  },
+  "https://merriam-webster.com/": {
+    "description": "Find definitions for over 300,000 words from the most authoritative English dictionary. Continuously updated with new words and meanings.",
+    "title": "Merriam-Webster: America's Most Trusted Dictionary",
+    "meta_description": "Find definitions for over 300,000 words from the most authoritative English dictionary. Continuously updated with new words and meanings.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:42.629921"
+  },
+  "https://developer.mozilla.org/": {
+    "description": "The MDN Web Docs site provides information about Open Web technologies including HTML, CSS, and APIs for both Web sites and progressive web apps.",
+    "title": "MDN Web Docs",
+    "meta_description": "The MDN Web Docs site provides information about Open Web technologies including HTML, CSS, and APIs for both Web sites and progressive web apps.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:45.394657"
+  },
+  "https://navta.net/": {
+    "description": "Please enable JavaScript to proceed.",
+    "title": "Client Challenge",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:46.756475"
+  },
+  "https://ncbi.nlm.nih.gov/": {
+    "description": "The .gov means it's official. Federal government websites often end in .gov or .mil. Before sharing sensitive information, make sure you're on a federal government site. The site...",
+    "title": "National Center for Biotechnology Information",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:49.390875"
+  },
+  "https://olympic.edu/": {
+    "description": "Educational website (olympic.edu)",
+    "title": "Olympic College",
+    "meta_description": "",
+    "status": "error",
+    "error": "HTTPSConnectionPool(host='olympic.edu', port=443): Max retries exceeded with url: / (Caused by SSLError(SSLCertVerificationError(1, \"[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'olympic.edu'. (_ssl.c:1028)\")))",
+    "timestamp": "2025-10-28T10:11:50.957216"
+  },
+  "https://onlineveterinaryanatomy.net/": {
+    "description": "Online Veterinary Anatomy Museum About the Museum",
+    "title": "Online Veterinary Anatomy Museum - Home Page | OVAM",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:11:58.123034"
+  },
+  "https://osha.gov/": {
+    "description": "Educational website (osha.gov)",
+    "title": "OSHA",
+    "meta_description": "",
+    "status": "error",
+    "error": "403 Client Error: Forbidden for url: https://osha.gov/",
+    "timestamp": "2025-10-28T10:11:59.520456"
+  },
+  "https://osibridge.com": {
+    "description": "Empowering Justice Involved with IT/Tech Training. Supporting education and innovation.",
+    "title": "OSIBridge",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:02.345795"
+  },
+  "https://owl.purdue.edu/": {
+    "description": "Welcome to the Purdue OWL® Popular Resources",
+    "title": "Purdue OWL® - \n\t\t\t Purdue OWL® -  Purdue University",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:04.589947"
+  },
+  "https://pbs.org/": {
+    "description": "Watch full episodes of your favorite PBS dramas, find in-depth news analysis and explore documentaries on history, science, art and more!",
+    "title": "PBS: Public Broadcasting Service",
+    "meta_description": "Watch full episodes of your favorite PBS dramas, find in-depth news analysis and explore documentaries on history, science, art and more!",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:06.419219"
+  },
+  "https://cct-pearsonvue.com/": {
+    "description": "Educational website (cct-pearsonvue.com)",
+    "title": "PearsonVue",
+    "meta_description": "",
+    "status": "error",
+    "error": "HTTPSConnectionPool(host='cct-pearsonvue.com', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x12044bb10>: Failed to resolve 'cct-pearsonvue.com' ([Errno 8] nodename nor servname provided, or not known)\"))",
+    "timestamp": "2025-10-28T10:12:09.213082"
+  },
+  "https://pennfoster.custhelp.com/": {
+    "description": "Type your question or keyword below Search",
+    "title": "Support Home Page",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:12.097011"
+  },
+  "https://jobboard.pennfoster.edu/": {
+    "description": "Find Your Career Match Opportunities from Across the Country",
+    "title": "Penn Foster Job Board – Penn Foster Job Board",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:14.024198"
+  },
+  "https://pennfoster.libapps.com/": {
+    "description": "What is LibApps? LibApps at Penn Foster is a platform powering LibGuides, LibAnswers, LibCal, LibInsight, and other Springshare tools licensed by your institution. Browser Support: Chr...",
+    "title": "LibApps Login @ Penn Foster",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:16.403250"
+  },
+  "https://pennfoster.edu/": {
+    "description": "Penn Foster offers self-paced, affordable programs in our high school, college & career school. Your education is here. Learn about our programs today.",
+    "title": "Accredited College, High School & Career School Online | Penn Foster",
+    "meta_description": "Penn Foster offers self-paced, affordable programs in our high school, college & career school. Your education is here. Learn about our programs today.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:20.486252"
+  },
+  "https://pewresearch.org/": {
+    "description": "Pew Research Center is a nonpartisan, nonadvocacy fact tank that informs the public about the issues, attitudes and trends shaping the world.",
+    "title": "Pew Research Center | Numbers, Facts and Trends Shaping Your World",
+    "meta_description": "Pew Research Center is a nonpartisan, nonadvocacy fact tank that informs the public about the issues, attitudes and trends shaping the world.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:22.658546"
+  },
+  "https://pirateipsum.me/": {
+    "description": "Website: Pirate Ipsum | Lorem Ipsum Generator",
+    "title": "Pirate Ipsum | Lorem Ipsum Generator",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:25.247557"
+  },
+  "https://plato.stanford.edu/": {
+    "description": "Website: Stanford Encyclopedia of Philosophy",
+    "title": "Stanford Encyclopedia of Philosophy",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:27.102787"
+  },
+  "https://politifact.com/": {
+    "description": "PolitiFact is a fact-checking website that rates the accuracy of claims by elected officials and others on its Truth-O-Meter.",
+    "title": "PolitiFact",
+    "meta_description": "PolitiFact is a fact-checking website that rates the accuracy of claims by elected officials and others on its Truth-O-Meter.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:30.912988"
+  },
+  "https://courses.portal2learn.com/": {
+    "description": "Website: Redirecting",
+    "title": "Redirecting",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:32.866856"
+  },
+  "https://poynter.org/": {
+    "description": "Educational website (poynter.org)",
+    "title": "Poynter",
+    "meta_description": "",
+    "status": "error",
+    "error": "403 Client Error: Forbidden for url: https://poynter.org/",
+    "timestamp": "2025-10-28T10:12:34.096430"
+  },
+  "https://prisonjournalismproject.org/": {
+    "description": "An independent, national nonprofit organization that trains incarcerated writers to be journalists and publishes their stories.",
+    "title": "Prison Journalism Project",
+    "meta_description": "An independent, national nonprofit organization that trains incarcerated writers to be journalists and publishes their stories.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:36.223393"
+  },
+  "https://prisonmathproject.org/": {
+    "description": "Transforming lives through mathematics Transforming lives through mathematics",
+    "title": "Prison Math Project",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:39.140270"
+  },
+  "https://quizlet.com/": {
+    "description": "Educational website (quizlet.com)",
+    "title": "Quizlet",
+    "meta_description": "",
+    "status": "error",
+    "error": "403 Client Error: Forbidden for url: https://quizlet.com/",
+    "timestamp": "2025-10-28T10:12:40.773834"
+  },
+  "https://react.dev/": {
+    "description": "React is the library for web and native user interfaces. Build user interfaces out of individual pieces called components written in JavaScript. React is designed to let you seamlessly combine components written by independent people, teams, and organizations.",
+    "title": "React",
+    "meta_description": "React is the library for web and native user interfaces. Build user interfaces out of individual pieces called components written in JavaScript. React is designed to let you seamlessly combine components written by independent people, teams, and organizations.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:43.421371"
+  },
+  "https://rosettastone.com/": {
+    "description": "Rosetta Stone's award-winning language learning program combines proven methods and the world's best speech recognition technology. Choose from 25 languages.",
+    "title": "Official Rosetta Stone® | How Language Is Learned",
+    "meta_description": "Rosetta Stone's award-winning language learning program combines proven methods and the world's best speech recognition technology. Choose from 25 languages.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:46.400929"
+  },
+  "https://support.corrections.sbctc.edu/": {
+    "description": "Corrections Education Reference Center Student Support",
+    "title": "Corrections Education Reference Center",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:48.559754"
+  },
+  "https://seattlebusinessmag.com/": {
+    "description": "Seattle's hub for business news, issues, and opinion.",
+    "title": "Seattle Business magazine",
+    "meta_description": "Seattle's hub for business news, issues, and opinion.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:51.534129"
+  },
+  "https://sec.gov/": {
+    "description": "Educational website (sec.gov)",
+    "title": "Securities and Exchange Commision",
+    "meta_description": "",
+    "status": "error",
+    "error": "403 Client Error: Forbidden for url: https://sec.gov/",
+    "timestamp": "2025-10-28T10:12:53.888746"
+  },
+  "https://sba.gov": {
+    "description": "We support America's small businesses. The SBA connects entrepreneurs with lenders and funding to help them plan, start and grow their business.",
+    "title": "Small Business Administration",
+    "meta_description": "We support America's small businesses. The SBA connects entrepreneurs with lenders and funding to help them plan, start and grow their business.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:55.925476"
+  },
+  "https://sqlite.org/": {
+    "description": "Website: SQLite Home Page",
+    "title": "SQLite Home Page",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:57.489264"
+  },
+  "https://stackoverflow.com/questions/tagged/javascript": {
+    "description": "Website: Newest 'javascript' Questions - Stack Overflow",
+    "title": "Newest 'javascript' Questions - Stack Overflow",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:12:59.644067"
+  },
+  "https://study.com/": {
+    "description": "Take online courses on Study.com that are fun and engaging. Pass exams to earn real college credit. Research schools and degrees to further your education.",
+    "title": "Online Courses for College Credit, Exam Prep & K-12 | Study.com",
+    "meta_description": "Take online courses on Study.com that are fun and engaging. Pass exams to earn real college credit. Research schools and degrees to further your education.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:13:02.427959"
+  },
+  "https://studentaid.gov/": {
+    "description": "Website: Federal Student Aid",
+    "title": "Federal Student Aid",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:13:03.807279"
+  },
+  "https://journalistsresource.org/": {
+    "description": "The Journalist’s Resource helps to bridge the communications gap between academia and journalism. Our goal: more high-quality research in the news stream.",
+    "title": "The Journalist's Resource - Informing the news with research",
+    "meta_description": "The Journalist’s Resource helps to bridge the communications gap between academia and journalism. Our goal: more high-quality research in the news stream.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:13:07.048181"
+  },
+  "https://unity.com/learn": {
+    "description": "Explore online learning paths, certifications, institutional licenses, tools for educators, and more.",
+    "title": "Learn",
+    "meta_description": "Explore online learning paths, certifications, institutional licenses, tools for educators, and more.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:13:08.758628"
+  },
+  "https://census.gov/": {
+    "description": "The Census Bureau's mission is to serve as the nation's leading provider of quality data about its people and economy.",
+    "title": "Census.gov | U.S. Census Bureau Homepage",
+    "meta_description": "The Census Bureau's mission is to serve as the nation's leading provider of quality data about its people and economy.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:13:12.183957"
+  },
+  "https://www.usda.gov/": {
+    "description": "Educational website (www.usda.gov)",
+    "title": "USDA",
+    "meta_description": "",
+    "status": "error",
+    "error": "HTTPSConnectionPool(host='www.usda.gov', port=443): Read timed out. (read timeout=10)",
+    "timestamp": "2025-10-28T10:13:23.944163"
+  },
+  "https://online.vitalsource.com": {
+    "description": "VitalSource Bookshelf is the world’s leading platform for distributing, accessing, consuming, and engaging with digital textbooks and course materials.",
+    "title": "VitalSource Bookshelf Online",
+    "meta_description": "VitalSource Bookshelf is the world’s leading platform for distributing, accessing, consuming, and engaging with digital textbooks and course materials.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:13:25.276124"
+  },
+  "https://w3schools.com/": {
+    "description": "Website: W3Schools Online Web Tutorials",
+    "title": "W3Schools Online Web Tutorials",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:13:28.731030"
+  },
+  "https://wamap.org/": {
+    "description": "WAMAP is a web based mathematics assessment and course management platform. Its use is provided free to Washington State public educational institution students and instructors. This system is design...",
+    "title": "WAMAP",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-10-28T10:13:37.062773"
+  },
+  "https://www.wsnla.org": {
+    "description": "Educational website (www.wsnla.org)",
+    "title": "Washington State Nursery and Landscape Association",
+    "meta_description": "",
+    "status": "error",
+    "error": "403 Client Error: Forbidden for url: https://www.wsnla.org/",
+    "timestamp": "2025-10-28T10:13:38.394600"
+  },
+  "https://www.worksourcewa.com/": {
+    "description": "Find the job that&#39;s right for you. Use Monster&#39;s resources to create a resume, search for jobs, prepare for interviews, and launch your career.",
+    "title": "WorkSourceWA",
+    "meta_description": "Find the job that&#39;s right for you. Use Monster&#39;s resources to create a resume, search for jobs, prepare for interviews, and launch your career.",
+    "status": "success",
+    "timestamp": "2025-10-28T10:13:40.310383"
+  }
+}

@@ -1,0 +1,13 @@
+[
+  {
+    "site_name": "Seattle Business Magazine",
+    "site_url": "https://seattlebusinessmag.com/",
+    "old_category": "Business",
+    "new_category": "Technology",
+    "suggestion_id": "suggest_1761668169987_h627aj3vp",
+    "applied_by": "admin",
+    "applied_timestamp": "2025-01-01T12:00:00Z",
+    "applied_by_ip": "127.0.0.1",
+    "status": "applied"
+  }
+]
