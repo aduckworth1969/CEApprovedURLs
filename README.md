@@ -5,7 +5,7 @@
 This system is designed specifically for prison environments with strict security requirements:
 
 ### ✅ **User Privacy Protected**
-- **Reports are NOT visible to other inmates**
+- **Reports are NOT visible to other incarcerated students**
 - **No user-to-user communication**
 - **No shared comment system**
 - **Each user's reports are private**
@@ -40,7 +40,7 @@ python server.py
 
 ## 📱 User Interface Features
 
-### For Inmates/Students:
+### For Incarcerated Students:
 - Browse approved websites by category
 - Search for specific sites
 - Report issues with websites

@@ -203,7 +203,7 @@ sudo systemctl restart approved-websites
 
 ## 🌐 **Access URLs**
 
-### **For Users (Inmates/Students):**
+### **For Users (Incarcerated Students):**
 - `http://your-aws-server/` - Main website listing
 - Clean interface, no access to reports
 
