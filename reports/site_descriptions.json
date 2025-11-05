@@ -798,5 +798,90 @@
     "meta_description": "Find the job that&#39;s right for you. Use Monster&#39;s resources to create a resume, search for jobs, prepare for interviews, and launch your career.",
     "status": "success",
     "timestamp": "2025-10-28T10:13:40.310383"
+  },
+  "https://Open Website sort and filter menu": {
+    "description": "Open Title sort and filter menu - Educational resource (Open Website sort and filter menu)",
+    "title": "Open Title sort and filter menu",
+    "meta_description": "",
+    "status": "error",
+    "error": "HTTPSConnectionPool(host='open%20website%20sort%20and%20filter%20menu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x1231f1940>: Failed to resolve 'open%20website%20sort%20and%20filter%20menu' ([Errno 8] nodename nor servname provided, or not known)\"))",
+    "timestamp": "2025-11-05T11:04:55.933223"
+  },
+  "https://docs.blender.org/": {
+    "description": "Home of the Blender project - Free and Open 3D Creation Software",
+    "title": "Blender Documentation - blender.org",
+    "meta_description": "Home of the Blender project - Free and Open 3D Creation Software",
+    "status": "success",
+    "timestamp": "2025-11-05T11:04:57.681309"
+  },
+  "https://www.britannica.com/": {
+    "description": "Explore the fact-checked online encyclopedia from Encyclopaedia Britannica with hundreds of thousands of objective articles, biographies, videos, and images from experts.",
+    "title": "Encyclopedia Britannica | Britannica",
+    "meta_description": "Explore the fact-checked online encyclopedia from Encyclopaedia Britannica with hundreds of thousands of objective articles, biographies, videos, and images from experts.",
+    "status": "success",
+    "timestamp": "2025-11-05T11:05:00.199577"
+  },
+  "https://www.elnuevodia.com": {
+    "description": "Infórmate con las últimas noticias de Puerto Rico hoy. Política, seguridad, deportes, entretenimiento y más en El Nuevo Día, el periódico líder de la isla.",
+    "title": "Noticias de Puerto Rico hoy | Última hora, análisis y opinión en El Nuevo Día",
+    "meta_description": "Infórmate con las últimas noticias de Puerto Rico hoy. Política, seguridad, deportes, entretenimiento y más en El Nuevo Día, el periódico líder de la isla.",
+    "status": "success",
+    "timestamp": "2025-11-05T11:05:02.835405"
+  },
+  "https://esd.wa.gov/": {
+    "description": "Welcome to the Washington State Employment Security Department Learn about benefits For employers",
+    "title": "Home | Employment Security Department",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-11-05T11:05:05.839501"
+  },
+  "https://www.evergreen.edu/library": {
+    "description": "Daniel J. Evans Library Search the Library Catalog About the Library",
+    "title": "Daniel J. Evans Library | The Evergreen State College",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-11-05T11:05:07.811017"
+  },
+  "https://igradeplus.com/": {
+    "description": "An affordable school management system for schools and districts and a free, easy-to-use, highly customizable, online gradebook for individual teachers.",
+    "title": "iGradePlus Online Gradebook and School Management System",
+    "meta_description": "An affordable school management system for schools and districts and a free, easy-to-use, highly customizable, online gradebook for individual teachers.",
+    "status": "success",
+    "timestamp": "2025-11-05T11:05:09.528345"
+  },
+  "https://tutorial.math.lamar.edu/": {
+    "description": "Welcome to my math notes site. Contained in this site are the notes (free and downloadable) that I use to teach Algebra, Calculus (I, II and III) as well as Differential Equations at Lamar University. The notes contain the usual topics that are taught in those courses as well as a few extra topic...",
+    "title": "Pauls Online Math Notes",
+    "meta_description": "Welcome to my math notes site.  Contained in this site are the notes (free and downloadable) that I use to teach Algebra, Calculus (I, II and III) as well as Differential Equations at Lamar University.  The notes contain the usual topics that are taught in those courses as well as a few extra topics that I decided to include just because I wanted to.  There are also a set of practice problems, with full solutions, to all of the classes except Differential Equations.  In addition there is also a selection of cheat sheets available for download.",
+    "status": "success",
+    "timestamp": "2025-11-05T11:05:12.232944"
+  },
+  "https://support.microsoft.com/": {
+    "description": "Microsoft Support is here to help you with Microsoft products. Find how-to articles, videos, and training for Microsoft Copilot, Microsoft 365, Windows 11, Surface, and more.",
+    "title": "Microsoft Support",
+    "meta_description": "Microsoft Support is here to help you with Microsoft products. Find how-to articles, videos, and training for Microsoft Copilot, Microsoft 365, Windows 11, Surface, and more.",
+    "status": "success",
+    "timestamp": "2025-11-05T11:05:15.498425"
+  },
+  "https://www.mywsba.org/": {
+    "description": "Personify eBusiness > Home - myWSBA",
+    "title": "Personify eBusiness > Home",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-11-05T11:05:17.334474"
+  },
+  "https://openstax.org/": {
+    "description": "OpenStax offers free college textbooks for all types of students, making education accessible & affordable for everyone. Browse our list of available subjects!",
+    "title": "OpenStax",
+    "meta_description": "OpenStax offers free college textbooks for all types of students, making education accessible & affordable for everyone. Browse our list of available subjects!",
+    "status": "success",
+    "timestamp": "2025-11-05T11:05:20.109776"
+  },
+  "https://www.washingtonhistory.org/": {
+    "description": "This Is Native Land Shaping the Story Explore Washington History Today",
+    "title": "Home - Washington State Historical Society",
+    "meta_description": "",
+    "status": "success",
+    "timestamp": "2025-11-05T11:05:22.055694"
   }
 }

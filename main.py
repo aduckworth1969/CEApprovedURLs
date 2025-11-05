@@ -148,65 +148,133 @@ def analyze_website(url, site_name):
         time.sleep(random.uniform(1, 3))
         
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
         }
         
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Remove script and style elements
+        for script in soup(["script", "style", "nav", "footer", "header"]):
+            script.decompose()
         
         # Extract key information
         title = soup.find('title')
         title_text = title.get_text().strip() if title else ""
         
-        # Look for meta description
+        # Look for meta description (multiple variations)
+        meta_description = ""
         meta_desc = soup.find('meta', attrs={'name': 'description'})
-        meta_description = meta_desc.get('content', '').strip() if meta_desc else ""
+        if meta_desc:
+            meta_description = meta_desc.get('content', '').strip()
         
-        # Extract main content from common elements
+        # Try Open Graph description
+        if not meta_description:
+            og_desc = soup.find('meta', attrs={'property': 'og:description'})
+            if og_desc:
+                meta_description = og_desc.get('content', '').strip()
+        
+        # Try Twitter card description
+        if not meta_description:
+            twitter_desc = soup.find('meta', attrs={'name': 'twitter:description'})
+            if twitter_desc:
+                meta_description = twitter_desc.get('content', '').strip()
+        
+        # Extract content from page - try multiple strategies
         content_elements = []
         
-        # Try to find main content areas
-        main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=re.compile(r'content|main|body', re.I))
+        # Strategy 1: Try semantic HTML5 elements
+        main_content = soup.find('main') or soup.find('article') or soup.find('section')
+        
+        # Strategy 2: Try common content divs
+        if not main_content:
+            for selector in ['div.content', 'div.main-content', 'div.page-content', 'div#content', 'div#main']:
+                main_content = soup.select_one(selector)
+                if main_content:
+                    break
+        
+        # Strategy 3: Try body if nothing else found
+        if not main_content:
+            main_content = soup.find('body')
+        
         if main_content:
-            # Get text from headings and paragraphs
-            headings = main_content.find_all(['h1', 'h2', 'h3'])
-            paragraphs = main_content.find_all('p')
-            
-            for heading in headings[:3]:  # First 3 headings
+            # Get headings (more comprehensive)
+            headings = main_content.find_all(['h1', 'h2', 'h3', 'h4'])
+            for heading in headings[:5]:  # Get more headings
                 text = heading.get_text().strip()
-                if text and len(text) < 200:
+                # Clean up text
+                text = re.sub(r'\s+', ' ', text)
+                if text and 10 < len(text) < 250:
                     content_elements.append(text)
             
-            for p in paragraphs[:2]:  # First 2 paragraphs
+            # Get paragraphs (more comprehensive)
+            paragraphs = main_content.find_all('p')
+            for p in paragraphs[:5]:  # Get more paragraphs
                 text = p.get_text().strip()
-                if text and len(text) > 20 and len(text) < 300:
-                    content_elements.append(text)
+                # Clean up text
+                text = re.sub(r'\s+', ' ', text)
+                if text and 30 < len(text) < 500:
+                    # Skip if it looks like navigation or footer
+                    if not any(skip in text.lower() for skip in ['cookie', 'privacy', 'terms', 'copyright', 'menu', 'navigation']):
+                        content_elements.append(text)
+            
+            # Try to get summary/intro text
+            for tag in ['div.lead', 'div.intro', 'div.summary', 'p.lead', 'p.intro']:
+                intro = main_content.select_one(tag)
+                if intro:
+                    text = intro.get_text().strip()
+                    text = re.sub(r'\s+', ' ', text)
+                    if text and 30 < len(text) < 400:
+                        content_elements.insert(0, text)  # Put at front
         
         # Generate description based on available information
         description_parts = []
         
-        if meta_description and len(meta_description) > 10:
+        # Priority 1: Meta description
+        if meta_description and len(meta_description) > 15:
             description_parts.append(meta_description)
-        elif content_elements:
-            # Combine first few content elements
-            combined_text = ' '.join(content_elements[:2])
-            if len(combined_text) > 200:
-                combined_text = combined_text[:200] + "..."
-            description_parts.append(combined_text)
-        elif title_text and len(title_text) > 10:
-            description_parts.append(f"Website: {title_text}")
         
+        # Priority 2: Content from page
+        if not description_parts and content_elements:
+            # Combine first few meaningful content elements
+            combined_text = ' '.join(content_elements[:3])
+            # Clean up
+            combined_text = re.sub(r'\s+', ' ', combined_text)
+            if len(combined_text) > 50:
+                if len(combined_text) > 280:
+                    combined_text = combined_text[:277] + "..."
+                description_parts.append(combined_text)
+        
+        # Priority 3: Title (enhanced)
+        if not description_parts and title_text and len(title_text) > 5:
+            # Try to make title more descriptive
+            if site_name and site_name.lower() not in title_text.lower():
+                description_parts.append(f"{title_text} - {site_name}")
+            else:
+                description_parts.append(title_text)
+        
+        # Priority 4: Fallback with site name intelligence
         if not description_parts:
-            # Fallback based on site name and URL
             domain = urlparse(url).netloc
-            description_parts.append(f"Educational resource website ({domain})")
+            # Try to use site name more intelligently
+            if site_name and len(site_name) > 3:
+                description_parts.append(f"{site_name} - Educational resource ({domain})")
+            else:
+                description_parts.append(f"Educational resource website ({domain})")
         
         # Clean up and format the description
         description = ' '.join(description_parts)
         description = re.sub(r'\s+', ' ', description)  # Remove extra whitespace
         description = description.strip()
+        
+        # Remove HTML tags if any slipped through
+        description = re.sub(r'<[^>]+>', '', description)
         
         # Ensure description is not too long
         if len(description) > 300:
@@ -221,8 +289,14 @@ def analyze_website(url, site_name):
         }
         
     except requests.exceptions.RequestException as e:
+        # Better error handling - try to use site name
+        domain = urlparse(url).netloc
+        if site_name and len(site_name) > 3:
+            fallback = f"{site_name} - Educational resource ({domain})"
+        else:
+            fallback = f"Educational resource ({domain})"
         return {
-            'description': f"Educational website ({urlparse(url).netloc})",
+            'description': fallback,
             'title': site_name,
             'meta_description': '',
             'status': 'error',
@@ -230,8 +304,13 @@ def analyze_website(url, site_name):
             'timestamp': datetime.now().isoformat()
         }
     except Exception as e:
+        domain = urlparse(url).netloc
+        if site_name and len(site_name) > 3:
+            fallback = f"{site_name} - Educational resource ({domain})"
+        else:
+            fallback = f"Educational resource ({domain})"
         return {
-            'description': f"Educational resource ({urlparse(url).netloc})",
+            'description': fallback,
             'title': site_name,
             'meta_description': '',
             'status': 'error',
@@ -304,7 +383,6 @@ df.dropna(subset=["Site Name", "URL"], inplace=True)
 
 # ---------- Process ----------
 categorized_sites = defaultdict(list)
-reports = load_reports()
 category_changes = load_category_changes()
 
 if GENERATE_DESCRIPTIONS:
@@ -323,6 +401,11 @@ processed = 0
 for _, row in df.iterrows():
     site_name = str(row["Site Name"]).strip()
     raw_url = str(row["URL"]).strip()
+    
+    # Skip sites that have been removed (check for "removed" text in name or URL)
+    if "removed" in site_name.lower() or "removed" in raw_url.lower():
+        print(f"⏭️  Skipping removed site: {site_name}")
+        continue
     
     # Normalize URL for display
     display_url = normalize_url(raw_url)
@@ -532,40 +615,6 @@ html_content = f"""
             text-decoration: none;
             color: white;
         }}
-        .report-btn {{
-            background: #dc3545;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }}
-        .report-btn:hover {{
-            background: #c82333;
-        }}
-        .suggest-btn {{
-            background: #17a2b8;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }}
-        .suggest-btn:hover {{
-            background: #138496;
-        }}
-        .report-count {{
-            background: #ffc107;
-            color: #212529;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }}
         .category-section {{
             margin-bottom: 40px;
         }}
@@ -650,143 +699,13 @@ html_content = f"""
                 }}
             }});
         }});
-        
-        function showReportForm(siteName, siteUrl) {{
-            var form = document.getElementById("reportForm");
-            var siteNameField = document.getElementById("siteName");
-            var siteUrlField = document.getElementById("siteUrl");
-            
-            siteNameField.value = siteName;
-            siteUrlField.value = siteUrl;
-            form.style.display = "block";
-        }}
-        
-        function hideReportForm() {{
-            document.getElementById("reportForm").style.display = "none";
-        }}
-        
-        function showSuggestForm(siteName, siteUrl, currentCategory) {{
-            var form = document.getElementById("suggestForm");
-            var siteNameField = document.getElementById("suggestSiteName");
-            var siteUrlField = document.getElementById("suggestSiteUrl");
-            var currentCategoryField = document.getElementById("currentCategory");
-            var currentCategoryDisplay = document.getElementById("currentCategoryDisplay");
-            
-            siteNameField.value = siteName;
-            siteUrlField.value = siteUrl;
-            currentCategoryField.value = currentCategory;
-            currentCategoryDisplay.value = currentCategory;
-            form.style.display = "block";
-        }}
-        
-        function hideSuggestForm() {{
-            document.getElementById("suggestForm").style.display = "none";
-        }}
-        
-        function submitSuggest() {{
-            var siteName = document.getElementById("suggestSiteName").value;
-            var siteUrl = document.getElementById("suggestSiteUrl").value;
-            var currentCategory = document.getElementById("currentCategory").value;
-            var suggestedCategory = document.getElementById("suggestedCategory").value;
-            var reason = document.getElementById("suggestReason").value;
-            
-            if (!suggestedCategory) {{
-                alert("Please select a suggested category.");
-                return;
-            }}
-            
-            // Create suggestion object
-            var suggestion = {{
-                site_name: siteName,
-                site_url: siteUrl,
-                current_category: currentCategory,
-                suggested_category: suggestedCategory,
-                reason: reason,
-                timestamp: new Date().toISOString(),
-                user_agent: navigator.userAgent,
-                suggestion_id: 'suggest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-            }};
-            
-            // Send suggestion to server
-            fetch('/submit_suggestion', {{
-                method: 'POST',
-                headers: {{
-                    'Content-Type': 'application/json',
-                }},
-                body: JSON.stringify(suggestion)
-            }})
-            .then(response => response.json())
-            .then(data => {{
-                if (data.success) {{
-                    alert("Thank you for your category suggestion. IT staff will review it.");
-                    hideSuggestForm();
-                    // Reset form fields manually
-                    document.getElementById("suggestedCategory").value = "";
-                    document.getElementById("suggestReason").value = "";
-                }} else {{
-                    alert("There was an error submitting your suggestion. Please try again.");
-                }}
-            }})
-            .catch(error => {{
-                console.error('Error submitting suggestion:', error);
-                alert("Unable to submit suggestion. Please check your connection and try again.");
-            }});
-        }}
-        
-        function submitReport() {{
-            var siteName = document.getElementById("siteName").value;
-            var siteUrl = document.getElementById("siteUrl").value;
-            var issueType = document.getElementById("issueType").value;
-            var description = document.getElementById("description").value;
-            
-            if (!issueType) {{
-                alert("Please select an issue type.");
-                return;
-            }}
-            
-            // Create report object
-            var report = {{
-                site_name: siteName,
-                site_url: siteUrl,
-                issue_type: issueType,
-                description: description,
-                timestamp: new Date().toISOString(),
-                user_agent: navigator.userAgent,
-                report_id: 'report_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-            }};
-            
-            // Send report to server (Python script will handle saving)
-            fetch('/submit_report', {{
-                method: 'POST',
-                headers: {{
-                    'Content-Type': 'application/json',
-                }},
-                body: JSON.stringify(report)
-            }})
-            .then(response => response.json())
-            .then(data => {{
-                if (data.success) {{
-                    alert("Thank you for reporting this issue. IT staff will review your feedback.");
-                    hideReportForm();
-                    // Reset form fields manually
-                    document.getElementById("issueType").value = "";
-                    document.getElementById("description").value = "";
-                }} else {{
-                    alert("There was an error submitting your report. Please try again.");
-                }}
-            }})
-            .catch(error => {{
-                console.error('Error submitting report:', error);
-                alert("Unable to submit report. Please check your connection and try again.");
-            }});
-        }}
     </script>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>Approved Websites</h1>
-            <p>For Incarcerated Students - Report issues to help us improve</p>
+            <p>For Incarcerated Students</p>
         </div>
         
         <div class="layout">
@@ -836,9 +755,6 @@ for category in sorted(categorized_sites.keys()):
                     <ul class="site-list">"""
     
     for site_name, url, description in sorted(categorized_sites[category], key=lambda x: x[0].lower()):
-        report_count = get_report_count_for_site(url, reports)
-        report_badge = f"<span class='report-count'>{report_count} reports</span>" if report_count > 0 else ""
-        
         html_content += f"""
                         <li class="site-item">
                             <div class="site-name">{escape_html(site_name)}</div>
@@ -846,9 +762,6 @@ for category in sorted(categorized_sites.keys()):
                             <div class="site-description">{escape_html(description)}</div>
                             <div class="site-actions">
                                 <a href="{escape_html(url)}" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('{escape_html(site_name)}', '{escape_html(url)}')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('{escape_html(site_name)}', '{escape_html(url)}', '{escape_html(category)}')">Suggest Category</button>
-                                {report_badge}
                             </div>
                         </li>"""
     
@@ -857,85 +770,6 @@ for category in sorted(categorized_sites.keys()):
                 </div>"""
 
 html_content += """
-        </div>
-        
-        <!-- Report Form Modal -->
-        <div id="reportForm" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
-                <h3>Report Website Issue</h3>
-                <form>
-                    <input type="hidden" id="siteName" />
-                    <input type="hidden" id="siteUrl" />
-                    
-                    <div style="margin-bottom: 15px;">
-                        <label><strong>Issue Type:</strong></label><br>
-                        <select id="issueType" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="">Select an issue type...</option>
-                            <option value="site_not_loading">Site not loading</option>
-                            <option value="site_blocked">Site blocked/filtered</option>
-                            <option value="content_issues">Content issues</option>
-                            <option value="slow_loading">Slow loading</option>
-                            <option value="broken_links">Broken links</option>
-                            <option value="other">Other technical problem</option>
-                        </select>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <label><strong>Description (optional):</strong></label><br>
-                        <textarea id="description" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; height: 80px;" placeholder="Describe the issue you encountered..."></textarea>
-                    </div>
-                    
-                    <div style="text-align: right;">
-                        <button type="button" onclick="hideReportForm()" style="padding: 8px 16px; margin-right: 10px; border: 1px solid #ddd; background: white; border-radius: 4px;">Cancel</button>
-                        <button type="button" onclick="submitReport()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px;">Submit Report</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
-        <!-- Category Suggestion Form Modal -->
-        <div id="suggestForm" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
-                <h3>Suggest Better Category</h3>
-                <form>
-                    <input type="hidden" id="suggestSiteName" />
-                    <input type="hidden" id="suggestSiteUrl" />
-                    <input type="hidden" id="currentCategory" />
-                    
-                    <div style="margin-bottom: 15px;">
-                        <label><strong>Current Category:</strong></label><br>
-                        <input type="text" id="currentCategoryDisplay" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <label><strong>Suggested Category:</strong></label><br>
-                        <select id="suggestedCategory" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="">Select a better category...</option>
-                            <option value="Education">Education</option>
-                            <option value="Government">Government</option>
-                            <option value="Technology">Technology</option>
-                            <option value="Business">Business</option>
-                            <option value="Science">Science</option>
-                            <option value="Language">Language</option>
-                            <option value="Math">Math</option>
-                            <option value="Testing">Testing</option>
-                            <option value="News">News</option>
-                            <option value="Support">Support</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <label><strong>Reason (optional):</strong></label><br>
-                        <textarea id="suggestReason" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; height: 80px;" placeholder="Why do you think this category is better?"></textarea>
-                    </div>
-                    
-                    <div style="text-align: right;">
-                        <button type="button" onclick="hideSuggestForm()" style="padding: 8px 16px; margin-right: 10px; border: 1px solid #ddd; background: white; border-radius: 4px;">Cancel</button>
-                        <button type="button" onclick="submitSuggest()" style="padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 4px;">Submit Suggestion</button>
-                    </div>
-                </form>
-            </div>
         </div>
     </div>
 </body>
@@ -949,9 +783,6 @@ print("✅ Website listing generated successfully!")
 print(f"📄 HTML page saved as 'approved_websites.html'")
 print(f"📊 Total websites: {total_sites}")
 print(f"📁 Categories: {len(categorized_sites)}")
-print(f"📝 Reports will be stored in: {REPORTS_FILE}")
 print("\n🎯 Users can now:")
 print("   • Browse websites by category")
 print("   • Search for specific sites")
-print("   • Report issues with websites")
-print("   • View report counts for each site")

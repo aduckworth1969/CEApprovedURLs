@@ -177,40 +177,6 @@
             text-decoration: none;
             color: white;
         }
-        .report-btn {
-            background: #dc3545;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-        .report-btn:hover {
-            background: #c82333;
-        }
-        .suggest-btn {
-            background: #17a2b8;
-            color: white;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-        .suggest-btn:hover {
-            background: #138496;
-        }
-        .report-count {
-            background: #ffc107;
-            color: #212529;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
         .category-section {
             margin-bottom: 40px;
         }
@@ -295,143 +261,13 @@
                 }
             });
         });
-        
-        function showReportForm(siteName, siteUrl) {
-            var form = document.getElementById("reportForm");
-            var siteNameField = document.getElementById("siteName");
-            var siteUrlField = document.getElementById("siteUrl");
-            
-            siteNameField.value = siteName;
-            siteUrlField.value = siteUrl;
-            form.style.display = "block";
-        }
-        
-        function hideReportForm() {
-            document.getElementById("reportForm").style.display = "none";
-        }
-        
-        function showSuggestForm(siteName, siteUrl, currentCategory) {
-            var form = document.getElementById("suggestForm");
-            var siteNameField = document.getElementById("suggestSiteName");
-            var siteUrlField = document.getElementById("suggestSiteUrl");
-            var currentCategoryField = document.getElementById("currentCategory");
-            var currentCategoryDisplay = document.getElementById("currentCategoryDisplay");
-            
-            siteNameField.value = siteName;
-            siteUrlField.value = siteUrl;
-            currentCategoryField.value = currentCategory;
-            currentCategoryDisplay.value = currentCategory;
-            form.style.display = "block";
-        }
-        
-        function hideSuggestForm() {
-            document.getElementById("suggestForm").style.display = "none";
-        }
-        
-        function submitSuggest() {
-            var siteName = document.getElementById("suggestSiteName").value;
-            var siteUrl = document.getElementById("suggestSiteUrl").value;
-            var currentCategory = document.getElementById("currentCategory").value;
-            var suggestedCategory = document.getElementById("suggestedCategory").value;
-            var reason = document.getElementById("suggestReason").value;
-            
-            if (!suggestedCategory) {
-                alert("Please select a suggested category.");
-                return;
-            }
-            
-            // Create suggestion object
-            var suggestion = {
-                site_name: siteName,
-                site_url: siteUrl,
-                current_category: currentCategory,
-                suggested_category: suggestedCategory,
-                reason: reason,
-                timestamp: new Date().toISOString(),
-                user_agent: navigator.userAgent,
-                suggestion_id: 'suggest_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-            };
-            
-            // Send suggestion to server
-            fetch('/submit_suggestion', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(suggestion)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert("Thank you for your category suggestion. IT staff will review it.");
-                    hideSuggestForm();
-                    // Reset form fields manually
-                    document.getElementById("suggestedCategory").value = "";
-                    document.getElementById("suggestReason").value = "";
-                } else {
-                    alert("There was an error submitting your suggestion. Please try again.");
-                }
-            })
-            .catch(error => {
-                console.error('Error submitting suggestion:', error);
-                alert("Unable to submit suggestion. Please check your connection and try again.");
-            });
-        }
-        
-        function submitReport() {
-            var siteName = document.getElementById("siteName").value;
-            var siteUrl = document.getElementById("siteUrl").value;
-            var issueType = document.getElementById("issueType").value;
-            var description = document.getElementById("description").value;
-            
-            if (!issueType) {
-                alert("Please select an issue type.");
-                return;
-            }
-            
-            // Create report object
-            var report = {
-                site_name: siteName,
-                site_url: siteUrl,
-                issue_type: issueType,
-                description: description,
-                timestamp: new Date().toISOString(),
-                user_agent: navigator.userAgent,
-                report_id: 'report_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-            };
-            
-            // Send report to server (Python script will handle saving)
-            fetch('/submit_report', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(report)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert("Thank you for reporting this issue. IT staff will review your feedback.");
-                    hideReportForm();
-                    // Reset form fields manually
-                    document.getElementById("issueType").value = "";
-                    document.getElementById("description").value = "";
-                } else {
-                    alert("There was an error submitting your report. Please try again.");
-                }
-            })
-            .catch(error => {
-                console.error('Error submitting report:', error);
-                alert("Unable to submit report. Please check your connection and try again.");
-            });
-        }
     </script>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>Approved Websites</h1>
-            <p>For Incarcerated Students - Report issues to help us improve</p>
+            <p>For Incarcerated Students</p>
         </div>
         
         <div class="layout">
@@ -455,13 +291,13 @@
                             <li class="category-item">
                                 <a href="#Education" class="category-link" onclick="scrollToCategory('Education'); return false;">
                                     <span class="category-name">Education</span>
-                                    <span class="category-count">19</span>
+                                    <span class="category-count">20</span>
                                 </a>
                             </li>
                             <li class="category-item">
                                 <a href="#Government" class="category-link" onclick="scrollToCategory('Government'); return false;">
                                     <span class="category-name">Government</span>
-                                    <span class="category-count">19</span>
+                                    <span class="category-count">20</span>
                                 </a>
                             </li>
                             <li class="category-item">
@@ -485,7 +321,7 @@
                             <li class="category-item">
                                 <a href="#Other" class="category-link" onclick="scrollToCategory('Other'); return false;">
                                     <span class="category-name">Other</span>
-                                    <span class="category-count">51</span>
+                                    <span class="category-count">59</span>
                                 </a>
                             </li>
                             <li class="category-item">
@@ -516,9 +352,9 @@
                     </div>
                     
                     <div class="stats">
-                        <strong>Total Websites:</strong> 111<br>
+                        <strong>Total Websites:</strong> 121<br>
                         <strong>Categories:</strong> 11<br>
-                        <strong>Last Updated:</strong> 2025-10-28 10:34
+                        <strong>Last Updated:</strong> 2025-11-05 11:07
                     </div>
                 </div>
             </div>
@@ -531,12 +367,9 @@
                         <li class="site-item">
                             <div class="site-name">Worksource Washington</div>
                             <div class="site-url">https://www.worksourcewa.com/</div>
-                            <div class="site-description">Educational resource (www.worksourcewa.com) - Online learning and reference material</div>
+                            <div class="site-description">Find the job that&amp;#39;s right for you. Use Monster&amp;#39;s resources to create a resume, search for jobs, prepare for interviews, and launch your career.</div>
                             <div class="site-actions">
                                 <a href="https://www.worksourcewa.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Worksource Washington', 'https://www.worksourcewa.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Worksource Washington', 'https://www.worksourcewa.com/', 'Business')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
@@ -547,210 +380,161 @@
                         <li class="site-item">
                             <div class="site-name">360Training - OSHA 10 hour Certificate</div>
                             <div class="site-url">https://www.360training.com/course/osha-10-hour-outreach-general-industry-free-study-guide</div>
-                            <div class="site-description">Educational resource (www.360training.com) - Online learning and reference material</div>
+                            <div class="site-description">Get your OSHA 10-hour General Industry Certificate with 360training®. Top provider since 1997. Engaging course &amp; free study guide. Get your DOL card!</div>
                             <div class="site-actions">
                                 <a href="https://www.360training.com/course/osha-10-hour-outreach-general-industry-free-study-guide" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('360Training - OSHA 10 hour Certificate', 'https://www.360training.com/course/osha-10-hour-outreach-general-industry-free-study-guide')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('360Training - OSHA 10 hour Certificate', 'https://www.360training.com/course/osha-10-hour-outreach-general-industry-free-study-guide', 'Education')">Suggest Category</button>
-                                
-                            </div>
-                        </li>
-                        <li class="site-item">
-                            <div class="site-name">Academia - REMOVED per IN557917</div>
-                            <div class="site-url">https://This Website was removed from Incarcerated Education Access on 2/26/2025 per IN557917</div>
-                            <div class="site-description">Educational resource (This Website was removed from Incarcerated Education Access on 2) - Online learning and reference material</div>
-                            <div class="site-actions">
-                                <a href="https://This Website was removed from Incarcerated Education Access on 2/26/2025 per IN557917" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Academia - REMOVED per IN557917', 'https://This Website was removed from Incarcerated Education Access on 2/26/2025 per IN557917')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Academia - REMOVED per IN557917', 'https://This Website was removed from Incarcerated Education Access on 2/26/2025 per IN557917', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">BoardworksEducation</div>
                             <div class="site-url">https://app.boardworkseducation.com/</div>
-                            <div class="site-description">Educational resource (app.boardworkseducation.com) - Online learning and reference material</div>
+                            <div class="site-description">Educational resource website (app.boardworkseducation.com)</div>
                             <div class="site-actions">
                                 <a href="https://app.boardworkseducation.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('BoardworksEducation', 'https://app.boardworkseducation.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('BoardworksEducation', 'https://app.boardworkseducation.com/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Centralia College</div>
                             <div class="site-url">https://centralia.edu/</div>
-                            <div class="site-description">Educational institution (centralia.edu) - Academic resources and programs</div>
+                            <div class="site-description">TRAILBLAZERS WANTED FOOD SECURITY EVENT SERIES</div>
                             <div class="site-actions">
                                 <a href="https://centralia.edu/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Centralia College', 'https://centralia.edu/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Centralia College', 'https://centralia.edu/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Epicgames.com</div>
                             <div class="site-url">https://dev.epicgames.com/community/unreal-engine/learning</div>
-                            <div class="site-description">Educational resource (dev.epicgames.com) - Online learning and reference material</div>
+                            <div class="site-description">Educational website (dev.epicgames.com)</div>
                             <div class="site-actions">
                                 <a href="https://dev.epicgames.com/community/unreal-engine/learning" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Epicgames.com', 'https://dev.epicgames.com/community/unreal-engine/learning')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Epicgames.com', 'https://dev.epicgames.com/community/unreal-engine/learning', 'Education')">Suggest Category</button>
-                                
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Evergreen Library</div>
+                            <div class="site-url">https://www.evergreen.edu/library</div>
+                            <div class="site-description">Daniel J. Evans Library Search the Library Catalog About the Library</div>
+                            <div class="site-actions">
+                                <a href="https://www.evergreen.edu/library" target="_blank" class="visit-btn">Visit Site</a>
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">G-W Learning Companion</div>
                             <div class="site-url">https://www.g-wlearning.com/</div>
-                            <div class="site-description">Educational resource (www.g-wlearning.com) - Online learning and reference material</div>
+                            <div class="site-description">Push your learning experience beyond the classroom with companion resources supporting many Goodheart-Willcox textbooks.</div>
                             <div class="site-actions">
                                 <a href="https://www.g-wlearning.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('G-W Learning Companion', 'https://www.g-wlearning.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('G-W Learning Companion', 'https://www.g-wlearning.com/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Grays Harbor College</div>
                             <div class="site-url">https://ghc.edu/</div>
-                            <div class="site-description">Educational institution (ghc.edu) - Academic resources and programs</div>
+                            <div class="site-description">Website Feedback</div>
                             <div class="site-actions">
                                 <a href="https://ghc.edu/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Grays Harbor College', 'https://ghc.edu/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Grays Harbor College', 'https://ghc.edu/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">IndoorPetOSU</div>
                             <div class="site-url">https://indoorpet.osu.edu/</div>
-                            <div class="site-description">Educational institution (indoorpet.osu.edu) - Academic resources and programs</div>
+                            <div class="site-description">Website: Home | Indoor Pet Initiative</div>
                             <div class="site-actions">
                                 <a href="https://indoorpet.osu.edu/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('IndoorPetOSU', 'https://indoorpet.osu.edu/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('IndoorPetOSU', 'https://indoorpet.osu.edu/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Khan Academy</div>
                             <div class="site-url">https://khanacademy.org/</div>
-                            <div class="site-description">Khan Academy - Free online learning platform with courses in math, science, and more</div>
+                            <div class="site-description">Website: Khan Academy</div>
                             <div class="site-actions">
                                 <a href="https://khanacademy.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Khan Academy', 'https://khanacademy.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Khan Academy', 'https://khanacademy.org/', 'Education')">Suggest Category</button>
-                                
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Lamar Math Tutorials</div>
+                            <div class="site-url">https://tutorial.math.lamar.edu/</div>
+                            <div class="site-description">Welcome to my math notes site. Contained in this site are the notes (free and downloadable) that I use to teach Algebra, Calculus (I, II and III) as well as Differential Equations at Lamar University. The notes contain the usual topics that are taught in those courses as well as a few extra topic...</div>
+                            <div class="site-actions">
+                                <a href="https://tutorial.math.lamar.edu/" target="_blank" class="visit-btn">Visit Site</a>
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Magic School</div>
                             <div class="site-url">https://magicschool.com/</div>
-                            <div class="site-description">Educational resource (magicschool.com) - Online learning and reference material</div>
+                            <div class="site-description">Adam &amp; Selina's Magic School for Youngsters is Australia's leading magic institution, offering both live training and online courses in the magic, illusion and conjuring arts. Our mission is to help youngsters build confidence and improve their lives through magic!</div>
                             <div class="site-actions">
                                 <a href="https://magicschool.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Magic School', 'https://magicschool.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Magic School', 'https://magicschool.com/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Olympic College</div>
                             <div class="site-url">https://olympic.edu/</div>
-                            <div class="site-description">Educational institution (olympic.edu) - Academic resources and programs</div>
+                            <div class="site-description">Educational website (olympic.edu)</div>
                             <div class="site-actions">
                                 <a href="https://olympic.edu/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Olympic College', 'https://olympic.edu/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Olympic College', 'https://olympic.edu/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">OwlPurdue</div>
                             <div class="site-url">https://owl.purdue.edu/</div>
-                            <div class="site-description">Educational institution (owl.purdue.edu) - Academic resources and programs</div>
+                            <div class="site-description">Welcome to the Purdue OWL® Popular Resources</div>
                             <div class="site-actions">
                                 <a href="https://owl.purdue.edu/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('OwlPurdue', 'https://owl.purdue.edu/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('OwlPurdue', 'https://owl.purdue.edu/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Penn Foster Job Board</div>
                             <div class="site-url">https://jobboard.pennfoster.edu/</div>
-                            <div class="site-description">Penn Foster - Online education provider offering career-focused programs</div>
+                            <div class="site-description">Find Your Career Match Opportunities from Across the Country</div>
                             <div class="site-actions">
                                 <a href="https://jobboard.pennfoster.edu/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Penn Foster Job Board', 'https://jobboard.pennfoster.edu/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Penn Foster Job Board', 'https://jobboard.pennfoster.edu/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Penn Foster Programs and Degrees</div>
                             <div class="site-url">https://pennfoster.edu/</div>
-                            <div class="site-description">Penn Foster - Online education provider offering career-focused programs</div>
+                            <div class="site-description">Penn Foster offers self-paced, affordable programs in our high school, college &amp; career school. Your education is here. Learn about our programs today.</div>
                             <div class="site-actions">
                                 <a href="https://pennfoster.edu/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Penn Foster Programs and Degrees', 'https://pennfoster.edu/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Penn Foster Programs and Degrees', 'https://pennfoster.edu/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">PlatoStanford</div>
                             <div class="site-url">https://plato.stanford.edu/</div>
-                            <div class="site-description">Educational institution (plato.stanford.edu) - Academic resources and programs</div>
+                            <div class="site-description">Website: Stanford Encyclopedia of Philosophy</div>
                             <div class="site-actions">
                                 <a href="https://plato.stanford.edu/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('PlatoStanford', 'https://plato.stanford.edu/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('PlatoStanford', 'https://plato.stanford.edu/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Portal 2 Learn</div>
                             <div class="site-url">https://courses.portal2learn.com/</div>
-                            <div class="site-description">Educational resource (courses.portal2learn.com) - Online learning and reference material</div>
+                            <div class="site-description">Website: Redirecting</div>
                             <div class="site-actions">
                                 <a href="https://courses.portal2learn.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Portal 2 Learn', 'https://courses.portal2learn.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Portal 2 Learn', 'https://courses.portal2learn.com/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">SBCTC</div>
                             <div class="site-url">https://support.corrections.sbctc.edu/</div>
-                            <div class="site-description">Educational institution (support.corrections.sbctc.edu) - Academic resources and programs</div>
+                            <div class="site-description">Corrections Education Reference Center Student Support</div>
                             <div class="site-actions">
                                 <a href="https://support.corrections.sbctc.edu/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('SBCTC', 'https://support.corrections.sbctc.edu/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('SBCTC', 'https://support.corrections.sbctc.edu/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Study.com</div>
                             <div class="site-url">https://study.com/</div>
-                            <div class="site-description">Educational resource (study.com) - Online learning and reference material</div>
+                            <div class="site-description">Take online courses on Study.com that are fun and engaging. Pass exams to earn real college credit. Research schools and degrees to further your education.</div>
                             <div class="site-actions">
                                 <a href="https://study.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Study.com', 'https://study.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Study.com', 'https://study.com/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">W3 Schools</div>
                             <div class="site-url">https://w3schools.com/</div>
-                            <div class="site-description">W3Schools - Web development tutorials and references for HTML, CSS, JavaScript</div>
+                            <div class="site-description">Website: W3Schools Online Web Tutorials</div>
                             <div class="site-actions">
                                 <a href="https://w3schools.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('W3 Schools', 'https://w3schools.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('W3 Schools', 'https://w3schools.com/', 'Education')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
@@ -761,210 +545,161 @@
                         <li class="site-item">
                             <div class="site-name">APHIS USDA</div>
                             <div class="site-url">https://www.aphis.usda.gov/</div>
-                            <div class="site-description">US Department of Agriculture - Federal agency supporting farmers and food safety</div>
+                            <div class="site-description">Educational website (www.aphis.usda.gov)</div>
                             <div class="site-actions">
                                 <a href="https://www.aphis.usda.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('APHIS USDA', 'https://www.aphis.usda.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('APHIS USDA', 'https://www.aphis.usda.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Bureau Of Labor Statistics</div>
                             <div class="site-url">https://bls.gov/</div>
-                            <div class="site-description">Government website (bls.gov) - Official federal resource</div>
+                            <div class="site-description">Educational website (bls.gov)</div>
                             <div class="site-actions">
                                 <a href="https://bls.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Bureau Of Labor Statistics', 'https://bls.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Bureau Of Labor Statistics', 'https://bls.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Business WA</div>
                             <div class="site-url">https://business.wa.gov/</div>
-                            <div class="site-description">Government website (business.wa.gov) - Official federal resource</div>
+                            <div class="site-description">This is the official state of Washington website for businesses, providing simple, step-by-step instructions on how to start, run and grow a business in Washington state. Here you will find a Road Map for opening a business, the Small Business Guide which includes details on planing, hiring emplo...</div>
                             <div class="site-actions">
                                 <a href="https://business.wa.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Business WA', 'https://business.wa.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Business WA', 'https://business.wa.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">DEA</div>
                             <div class="site-url">https://dea.gov/</div>
-                            <div class="site-description">Government website (dea.gov) - Official federal resource</div>
+                            <div class="site-description">Educational website (dea.gov)</div>
                             <div class="site-actions">
                                 <a href="https://dea.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('DEA', 'https://dea.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('DEA', 'https://dea.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Department of Labor</div>
                             <div class="site-url">https://dol.gov/</div>
-                            <div class="site-description">Department of Labor - Federal agency promoting worker welfare and job opportunities</div>
+                            <div class="site-description">Website: Challenge Validation</div>
                             <div class="site-actions">
                                 <a href="https://dol.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Department of Labor', 'https://dol.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Department of Labor', 'https://dol.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Drug Enforcement Act</div>
                             <div class="site-url">https://deadiversion.usdoj.gov/</div>
-                            <div class="site-description">Government website (deadiversion.usdoj.gov) - Official federal resource</div>
+                            <div class="site-description">The mission of DEA's Diversion Control Division is to prevent, detect, and investigate the diversion of controlled pharmaceuticals and listed chemicals from legitimate sources while ensuring an adequate and uninterrupted supply for legitimate medical, commercial, and scientific needs.</div>
                             <div class="site-actions">
                                 <a href="https://deadiversion.usdoj.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Drug Enforcement Act', 'https://deadiversion.usdoj.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Drug Enforcement Act', 'https://deadiversion.usdoj.gov/', 'Government')">Suggest Category</button>
-                                
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Employment Security Department WA State</div>
+                            <div class="site-url">https://esd.wa.gov/</div>
+                            <div class="site-description">Welcome to the Washington State Employment Security Department Learn about benefits For employers</div>
+                            <div class="site-actions">
+                                <a href="https://esd.wa.gov/" target="_blank" class="visit-btn">Visit Site</a>
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">EPA</div>
                             <div class="site-url">https://epa.gov</div>
-                            <div class="site-description">Environmental Protection Agency - Federal agency protecting human health and the environment</div>
+                            <div class="site-description">Website of the U.S. Environmental Protection Agency (EPA). EPA's mission is to protect human health and the environment.</div>
                             <div class="site-actions">
                                 <a href="https://epa.gov" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('EPA', 'https://epa.gov')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('EPA', 'https://epa.gov', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">EPA</div>
                             <div class="site-url">https://epa.gov/</div>
-                            <div class="site-description">Environmental Protection Agency - Federal agency protecting human health and the environment</div>
+                            <div class="site-description">Website of the U.S. Environmental Protection Agency (EPA). EPA's mission is to protect human health and the environment.</div>
                             <div class="site-actions">
                                 <a href="https://epa.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('EPA', 'https://epa.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('EPA', 'https://epa.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">FDA</div>
                             <div class="site-url">https://fda.gov</div>
-                            <div class="site-description">Food and Drug Administration - Federal agency regulating food, drugs, medical devices, and cosmetics safety</div>
+                            <div class="site-description">Educational website (fda.gov)</div>
                             <div class="site-actions">
                                 <a href="https://fda.gov" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('FDA', 'https://fda.gov')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('FDA', 'https://fda.gov', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">FSIS USDA</div>
                             <div class="site-url">https://www.fsis.usda.gov/</div>
-                            <div class="site-description">US Department of Agriculture - Federal agency supporting farmers and food safety</div>
+                            <div class="site-description">Educational website (www.fsis.usda.gov)</div>
                             <div class="site-actions">
                                 <a href="https://www.fsis.usda.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('FSIS USDA', 'https://www.fsis.usda.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('FSIS USDA', 'https://www.fsis.usda.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">HHS</div>
                             <div class="site-url">https://hhs.gov/</div>
-                            <div class="site-description">Department of Health and Human Services - Federal agency protecting health and providing services</div>
+                            <div class="site-description">Educational website (hhs.gov)</div>
                             <div class="site-actions">
                                 <a href="https://hhs.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('HHS', 'https://hhs.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('HHS', 'https://hhs.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">IRS</div>
                             <div class="site-url">https://irs.gov</div>
-                            <div class="site-description">Internal Revenue Service - Federal agency responsible for tax collection and enforcement</div>
+                            <div class="site-description">Pay your taxes. Get your refund status. Find IRS forms and answers to tax questions. We help you understand and meet your federal tax responsibilities.</div>
                             <div class="site-actions">
                                 <a href="https://irs.gov" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('IRS', 'https://irs.gov')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('IRS', 'https://irs.gov', 'Government')">Suggest Category</button>
-                                
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">myWSBA</div>
+                            <div class="site-url">https://www.mywsba.org/</div>
+                            <div class="site-description">Personify eBusiness &gt; Home - myWSBA</div>
+                            <div class="site-actions">
+                                <a href="https://www.mywsba.org/" target="_blank" class="visit-btn">Visit Site</a>
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">NCBI</div>
                             <div class="site-url">https://ncbi.nlm.nih.gov/</div>
-                            <div class="site-description">Government website (ncbi.nlm.nih.gov) - Official federal resource</div>
+                            <div class="site-description">The .gov means it's official. Federal government websites often end in .gov or .mil. Before sharing sensitive information, make sure you're on a federal government site. The site...</div>
                             <div class="site-actions">
                                 <a href="https://ncbi.nlm.nih.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('NCBI', 'https://ncbi.nlm.nih.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('NCBI', 'https://ncbi.nlm.nih.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">OSHA</div>
                             <div class="site-url">https://osha.gov/</div>
-                            <div class="site-description">Occupational Safety and Health Administration - Federal agency ensuring workplace safety</div>
+                            <div class="site-description">Educational website (osha.gov)</div>
                             <div class="site-actions">
                                 <a href="https://osha.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('OSHA', 'https://osha.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('OSHA', 'https://osha.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Securities and Exchange Commision</div>
                             <div class="site-url">https://sec.gov/</div>
-                            <div class="site-description">Securities and Exchange Commission - Federal agency regulating securities markets</div>
+                            <div class="site-description">Educational website (sec.gov)</div>
                             <div class="site-actions">
                                 <a href="https://sec.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Securities and Exchange Commision', 'https://sec.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Securities and Exchange Commision', 'https://sec.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Small Business Administration</div>
                             <div class="site-url">https://sba.gov</div>
-                            <div class="site-description">Small Business Administration - Federal agency supporting small businesses</div>
+                            <div class="site-description">We support America's small businesses. The SBA connects entrepreneurs with lenders and funding to help them plan, start and grow their business.</div>
                             <div class="site-actions">
                                 <a href="https://sba.gov" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Small Business Administration', 'https://sba.gov')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Small Business Administration', 'https://sba.gov', 'Government')">Suggest Category</button>
-                                
-                            </div>
-                        </li>
-                        <li class="site-item">
-                            <div class="site-name">Student Aid.Gov</div>
-                            <div class="site-url">https://studentaid.gov/</div>
-                            <div class="site-description">Government website (studentaid.gov) - Official federal resource</div>
-                            <div class="site-actions">
-                                <a href="https://studentaid.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Student Aid.Gov', 'https://studentaid.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Student Aid.Gov', 'https://studentaid.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">US Census Bureau</div>
                             <div class="site-url">https://census.gov/</div>
-                            <div class="site-description">US Census Bureau - Federal agency providing population and economic data</div>
+                            <div class="site-description">The Census Bureau's mission is to serve as the nation's leading provider of quality data about its people and economy.</div>
                             <div class="site-actions">
                                 <a href="https://census.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('US Census Bureau', 'https://census.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('US Census Bureau', 'https://census.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">USDA</div>
                             <div class="site-url">https://www.usda.gov/</div>
-                            <div class="site-description">US Department of Agriculture - Federal agency supporting farmers and food safety</div>
+                            <div class="site-description">Educational website (www.usda.gov)</div>
                             <div class="site-actions">
                                 <a href="https://www.usda.gov/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('USDA', 'https://www.usda.gov/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('USDA', 'https://www.usda.gov/', 'Government')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
@@ -975,23 +710,17 @@
                         <li class="site-item">
                             <div class="site-name">American Rhetoric</div>
                             <div class="site-url">https://americanrhetoric.com/</div>
-                            <div class="site-description">American Rhetoric - Online speech bank and rhetorical resources</div>
+                            <div class="site-description">Site dedicated to Public Rhetoric, political, social, movie and religious speeches and related concepts of and exercises in rhetoric.</div>
                             <div class="site-actions">
                                 <a href="https://americanrhetoric.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('American Rhetoric', 'https://americanrhetoric.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('American Rhetoric', 'https://americanrhetoric.com/', 'Language')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Rosettastone</div>
                             <div class="site-url">https://rosettastone.com/</div>
-                            <div class="site-description">Rosetta Stone - Language learning software and online courses</div>
+                            <div class="site-description">Rosetta Stone's award-winning language learning program combines proven methods and the world's best speech recognition technology. Choose from 25 languages.</div>
                             <div class="site-actions">
                                 <a href="https://rosettastone.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Rosettastone', 'https://rosettastone.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Rosettastone', 'https://rosettastone.com/', 'Language')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
@@ -1002,34 +731,25 @@
                         <li class="site-item">
                             <div class="site-name">Get Sum Math</div>
                             <div class="site-url">https://www.getsummath.com/</div>
-                            <div class="site-description">Mathematics resource - Educational tools and materials for math learning</div>
+                            <div class="site-description">Free GED Practice Problems! Free GED Math practice, free GED Science practice, free GED RLA practice and free GED Social Studies practice at Get Sum Math – one of the best online GED study platforms!</div>
                             <div class="site-actions">
                                 <a href="https://www.getsummath.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Get Sum Math', 'https://www.getsummath.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Get Sum Math', 'https://www.getsummath.com/', 'Math')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Prison Math Project</div>
                             <div class="site-url">https://prisonmathproject.org/</div>
-                            <div class="site-description">Mathematics resource - Educational tools and materials for math learning</div>
+                            <div class="site-description">Transforming lives through mathematics Transforming lives through mathematics</div>
                             <div class="site-actions">
                                 <a href="https://prisonmathproject.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Prison Math Project', 'https://prisonmathproject.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Prison Math Project', 'https://prisonmathproject.org/', 'Math')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">wamap.org</div>
                             <div class="site-url">https://wamap.org/</div>
-                            <div class="site-description">Mathematics resource - Educational tools and materials for math learning</div>
+                            <div class="site-description">WAMAP is a web based mathematics assessment and course management platform. Its use is provided free to Washington State public educational institution students and instructors. This system is design...</div>
                             <div class="site-actions">
                                 <a href="https://wamap.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('wamap.org', 'https://wamap.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('wamap.org', 'https://wamap.org/', 'Math')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
@@ -1040,23 +760,17 @@
                         <li class="site-item">
                             <div class="site-name">Associated Press News</div>
                             <div class="site-url">https://apnews.com/</div>
-                            <div class="site-description">Associated Press News - International news agency and wire service</div>
+                            <div class="site-description">Read the latest headlines, breaking news, and videos at APNews.com, the definitive source for independent journalism from every corner of the globe.</div>
                             <div class="site-actions">
                                 <a href="https://apnews.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Associated Press News', 'https://apnews.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Associated Press News', 'https://apnews.com/', 'News')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">The Journalist's Recource</div>
                             <div class="site-url">https://journalistsresource.org/</div>
-                            <div class="site-description">Journalism resource - Tools and information for journalists and media professionals</div>
+                            <div class="site-description">The Journalist’s Resource helps to bridge the communications gap between academia and journalism. Our goal: more high-quality research in the news stream.</div>
                             <div class="site-actions">
                                 <a href="https://journalistsresource.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('The Journalist's Recource', 'https://journalistsresource.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('The Journalist's Recource', 'https://journalistsresource.org/', 'News')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
@@ -1067,562 +781,473 @@
                         <li class="site-item">
                             <div class="site-name">American Battlefield Trust</div>
                             <div class="site-url">https://battlefields.org/</div>
-                            <div class="site-description">Educational resource (battlefields.org) - Online learning and reference material</div>
+                            <div class="site-description">American Battlefield Trust This Day in History</div>
                             <div class="site-actions">
                                 <a href="https://battlefields.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('American Battlefield Trust', 'https://battlefields.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('American Battlefield Trust', 'https://battlefields.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">AVDT</div>
                             <div class="site-url">https://avdt.us/</div>
-                            <div class="site-description">Educational resource (avdt.us) - Online learning and reference material</div>
+                            <div class="site-description">History</div>
                             <div class="site-actions">
                                 <a href="https://avdt.us/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('AVDT', 'https://avdt.us/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('AVDT', 'https://avdt.us/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">AVECCT</div>
                             <div class="site-url">https://avecct.org/</div>
-                            <div class="site-description">Educational resource (avecct.org) - Online learning and reference material</div>
+                            <div class="site-description">Educational website (avecct.org)</div>
                             <div class="site-actions">
                                 <a href="https://avecct.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('AVECCT', 'https://avecct.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('AVECCT', 'https://avecct.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">AVMA</div>
                             <div class="site-url">https://avma.org/</div>
-                            <div class="site-description">Educational resource (avma.org) - Online learning and reference material</div>
+                            <div class="site-description">Educational resource website (avma.org)</div>
                             <div class="site-actions">
                                 <a href="https://avma.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('AVMA', 'https://avma.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('AVMA', 'https://avma.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">AVTAA</div>
                             <div class="site-url">https://www.avtaa-vts.org/</div>
-                            <div class="site-description">Educational resource (www.avtaa-vts.org) - Online learning and reference material</div>
+                            <div class="site-description">AVTAA Academy of Veterinary Technicians in Anesthesia and Analgesia home page. Animals require anesthesia for surgery and invasive procedures on a daily basis. The veterinary technician specialist in anesthesia is there to provide your pet with exceptional anesthetic care before, during and after...</div>
                             <div class="site-actions">
                                 <a href="https://www.avtaa-vts.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('AVTAA', 'https://www.avtaa-vts.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('AVTAA', 'https://www.avtaa-vts.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">AztecSoftware</div>
                             <div class="site-url">https://plus.aztecsoftware.com/</div>
-                            <div class="site-description">Educational resource (plus.aztecsoftware.com) - Online learning and reference material</div>
+                            <div class="site-description">Chrome is the official web browser from Google, built to be fast, secure, and customizable. Download now and make it yours.</div>
                             <div class="site-actions">
                                 <a href="https://plus.aztecsoftware.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('AztecSoftware', 'https://plus.aztecsoftware.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('AztecSoftware', 'https://plus.aztecsoftware.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">AZVT</div>
                             <div class="site-url">https://azvt.org/</div>
-                            <div class="site-description">Educational resource (azvt.org) - Online learning and reference material</div>
+                            <div class="site-description">2025 Sponsors ASSOCIATION OFZOOLOGICALVETERINARY TECHNICIANS</div>
                             <div class="site-actions">
                                 <a href="https://azvt.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('AZVT', 'https://azvt.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('AZVT', 'https://azvt.org/', 'Other')">Suggest Category</button>
-                                
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">blender (docs)</div>
+                            <div class="site-url">https://docs.blender.org/</div>
+                            <div class="site-description">Home of the Blender project - Free and Open 3D Creation Software</div>
+                            <div class="site-actions">
+                                <a href="https://docs.blender.org/" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Britannica</div>
+                            <div class="site-url">https://www.britannica.com/</div>
+                            <div class="site-description">Explore the fact-checked online encyclopedia from Encyclopaedia Britannica with hundreds of thousands of objective articles, biographies, videos, and images from experts.</div>
+                            <div class="site-actions">
+                                <a href="https://www.britannica.com/" target="_blank" class="visit-btn">Visit Site</a>
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">CareerCruising</div>
                             <div class="site-url">https://careercruising.com</div>
-                            <div class="site-description">Educational resource (careercruising.com) - Online learning and reference material</div>
+                            <div class="site-description">Website: Career Cruising - English - Home</div>
                             <div class="site-actions">
                                 <a href="https://careercruising.com" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('CareerCruising', 'https://careercruising.com')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('CareerCruising', 'https://careercruising.com', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">CatVets</div>
                             <div class="site-url">https://catvets.com/</div>
-                            <div class="site-description">Educational resource (catvets.com) - Online learning and reference material</div>
+                            <div class="site-description">Feline Veterinary Medical Association New &amp; Upcoming</div>
                             <div class="site-actions">
                                 <a href="https://catvets.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('CatVets', 'https://catvets.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('CatVets', 'https://catvets.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Certified Professional Horticulturist Progress Certificates</div>
                             <div class="site-url">https://us06web.zoom.us/rec/share/4igPhAIR7Uk-GG0CAMAxF9JNSzWp9e0KEL3UsLeAY91KATexu4rra1XyDFDkyROO.Yf3sxxA0VMMoicc6</div>
-                            <div class="site-description">Educational resource (us06web.zoom.us) - Online learning and reference material</div>
+                            <div class="site-description">Zoom is the leader in modern enterprise video communications, with an easy, reliable cloud platform for video and audio conferencing, chat, and webinars across mobile, desktop, and room systems. Zoom Rooms is the original software-based conference room solution used around the world in board, con...</div>
                             <div class="site-actions">
                                 <a href="https://us06web.zoom.us/rec/share/4igPhAIR7Uk-GG0CAMAxF9JNSzWp9e0KEL3UsLeAY91KATexu4rra1XyDFDkyROO.Yf3sxxA0VMMoicc6" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Certified Professional Horticulturist Progress Certificates', 'https://us06web.zoom.us/rec/share/4igPhAIR7Uk-GG0CAMAxF9JNSzWp9e0KEL3UsLeAY91KATexu4rra1XyDFDkyROO.Yf3sxxA0VMMoicc6')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Certified Professional Horticulturist Progress Certificates', 'https://us06web.zoom.us/rec/share/4igPhAIR7Uk-GG0CAMAxF9JNSzWp9e0KEL3UsLeAY91KATexu4rra1XyDFDkyROO.Yf3sxxA0VMMoicc6', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Clash of Code</div>
                             <div class="site-url">https://www.codingame.com/</div>
-                            <div class="site-description">Educational resource (www.codingame.com) - Online learning and reference material</div>
+                            <div class="site-description">CodinGame is a challenge-based training platform for programmers where you can play with the hottest programming topics. Solve games, code AI bots, learn from your peers, have fun.</div>
                             <div class="site-actions">
                                 <a href="https://www.codingame.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Clash of Code', 'https://www.codingame.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Clash of Code', 'https://www.codingame.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Coderbyte</div>
                             <div class="site-url">https://www.coderbyte.com/</div>
-                            <div class="site-description">Educational resource (www.coderbyte.com) - Online learning and reference material</div>
+                            <div class="site-description">Evaluate your AI-powered workforce quickly, accurately, and affordably with unlimited technical assessments and interviews.</div>
                             <div class="site-actions">
                                 <a href="https://www.coderbyte.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Coderbyte', 'https://www.coderbyte.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Coderbyte', 'https://www.coderbyte.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Colombia Journalism Review</div>
                             <div class="site-url">https://cjr.org/</div>
-                            <div class="site-description">Educational resource (cjr.org) - Online learning and reference material</div>
+                            <div class="site-description">Educational website (cjr.org)</div>
                             <div class="site-actions">
                                 <a href="https://cjr.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Colombia Journalism Review', 'https://cjr.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Colombia Journalism Review', 'https://cjr.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Color Palettes for Designers</div>
                             <div class="site-url">https://colorhunt.co/</div>
-                            <div class="site-description">Educational resource (colorhunt.co) - Online learning and reference material</div>
+                            <div class="site-description">Discover the newest hand-picked color palettes of Color Hunt. Get color inspiration for your design and art projects.</div>
                             <div class="site-actions">
                                 <a href="https://colorhunt.co/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Color Palettes for Designers', 'https://colorhunt.co/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Color Palettes for Designers', 'https://colorhunt.co/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Correction SED</div>
                             <div class="site-url">https://dl.correctionsed.com</div>
-                            <div class="site-description">Educational resource (dl.correctionsed.com) - Online learning and reference material</div>
+                            <div class="site-description">Educational resource website (dl.correctionsed.com)</div>
                             <div class="site-actions">
                                 <a href="https://dl.correctionsed.com" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Correction SED', 'https://dl.correctionsed.com')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Correction SED', 'https://dl.correctionsed.com', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Corrections ED (Canvas)</div>
                             <div class="site-url">https://correctionsed.com/</div>
-                            <div class="site-description">Educational resource (correctionsed.com) - Online learning and reference material</div>
+                            <div class="site-description">OPE (Open Prison Education) - The easiest and most secure way to setup a self hosted, prison ready Canvas LMS for both offline and cloud use.</div>
                             <div class="site-actions">
                                 <a href="https://correctionsed.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Corrections ED (Canvas)', 'https://correctionsed.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Corrections ED (Canvas)', 'https://correctionsed.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">DrMartyBecker</div>
                             <div class="site-url">https://drmartybecker.com/</div>
-                            <div class="site-description">Educational resource (drmartybecker.com) - Online learning and reference material</div>
+                            <div class="site-description">"America's Veterinarian"</div>
                             <div class="site-actions">
                                 <a href="https://drmartybecker.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('DrMartyBecker', 'https://drmartybecker.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('DrMartyBecker', 'https://drmartybecker.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">EBSCO</div>
                             <div class="site-url">https://www.ebsco.com/</div>
-                            <div class="site-description">Educational resource (www.ebsco.com) - Online learning and reference material</div>
+                            <div class="site-description">EBSCO is the leading provider of research databases, e-journals, magazine subscriptions, ebooks and discovery service for academic libraries, public libraries, corporations, schools, government and medical institutions</div>
                             <div class="site-actions">
                                 <a href="https://www.ebsco.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('EBSCO', 'https://www.ebsco.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('EBSCO', 'https://www.ebsco.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Ecasas</div>
                             <div class="site-url">https://ecasas.org/</div>
-                            <div class="site-description">Educational resource (ecasas.org) - Online learning and reference material</div>
+                            <div class="site-description">Educational website (ecasas.org)</div>
                             <div class="site-actions">
                                 <a href="https://ecasas.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Ecasas', 'https://ecasas.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Ecasas', 'https://ecasas.org/', 'Other')">Suggest Category</button>
-                                
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Elnuevodia</div>
+                            <div class="site-url">https://www.elnuevodia.com</div>
+                            <div class="site-description">Infórmate con las últimas noticias de Puerto Rico hoy. Política, seguridad, deportes, entretenimiento y más en El Nuevo Día, el periódico líder de la isla.</div>
+                            <div class="site-actions">
+                                <a href="https://www.elnuevodia.com" target="_blank" class="visit-btn">Visit Site</a>
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Exchange</div>
                             <div class="site-url">https://exchange.parchment.com/</div>
-                            <div class="site-description">Educational resource (exchange.parchment.com) - Online learning and reference material</div>
+                            <div class="site-description">Website: Sign in to Parchment</div>
                             <div class="site-actions">
                                 <a href="https://exchange.parchment.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Exchange', 'https://exchange.parchment.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Exchange', 'https://exchange.parchment.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Express - Node.js</div>
                             <div class="site-url">https://expressjs.com/</div>
-                            <div class="site-description">Educational resource (expressjs.com) - Online learning and reference material</div>
+                            <div class="site-description">Express is a fast, unopinionated, minimalist web framework for Node.js, providing a robust set of features for web and mobile applications.</div>
                             <div class="site-actions">
                                 <a href="https://expressjs.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Express - Node.js', 'https://expressjs.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Express - Node.js', 'https://expressjs.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">fonts.google</div>
                             <div class="site-url">https://fonts.google.com/</div>
-                            <div class="site-description">Educational resource (fonts.google.com) - Online learning and reference material</div>
+                            <div class="site-description">Making the web more beautiful, fast, and open through great typography</div>
                             <div class="site-actions">
                                 <a href="https://fonts.google.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('fonts.google', 'https://fonts.google.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('fonts.google', 'https://fonts.google.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Free Code Camp</div>
                             <div class="site-url">https://freecodecamp.org/</div>
-                            <div class="site-description">Educational resource (freecodecamp.org) - Online learning and reference material</div>
+                            <div class="site-description">Educational resource website (freecodecamp.org)</div>
                             <div class="site-actions">
                                 <a href="https://freecodecamp.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Free Code Camp', 'https://freecodecamp.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Free Code Camp', 'https://freecodecamp.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">G-W Publisher</div>
                             <div class="site-url">https://www.g-w.com/</div>
-                            <div class="site-description">Educational resource (www.g-w.com) - Online learning and reference material</div>
+                            <div class="site-description">Explore a wide range of digital and print resources that build skills for life. G-W provides innovative solutions for Career and Technical Education plus Health and Physical Education.</div>
                             <div class="site-actions">
                                 <a href="https://www.g-w.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('G-W Publisher', 'https://www.g-w.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('G-W Publisher', 'https://www.g-w.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">G-W Textbooks</div>
                             <div class="site-url">https://g-wonlinetextbooks.com/</div>
-                            <div class="site-description">Educational resource (g-wonlinetextbooks.com) - Online learning and reference material</div>
+                            <div class="site-description">Educational website (g-wonlinetextbooks.com)</div>
                             <div class="site-actions">
                                 <a href="https://g-wonlinetextbooks.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('G-W Textbooks', 'https://g-wonlinetextbooks.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('G-W Textbooks', 'https://g-wonlinetextbooks.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">GED</div>
                             <div class="site-url">https://app.ged.com/managerLogin</div>
-                            <div class="site-description">Educational resource (app.ged.com) - Online learning and reference material</div>
+                            <div class="site-description">Educational resource website (app.ged.com)</div>
                             <div class="site-actions">
                                 <a href="https://app.ged.com/managerLogin" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('GED', 'https://app.ged.com/managerLogin')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('GED', 'https://app.ged.com/managerLogin', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Github</div>
                             <div class="site-url">https://github.com/</div>
-                            <div class="site-description">GitHub - Code hosting platform for software development and collaboration</div>
+                            <div class="site-description">Join the world's most widely adopted, AI-powered developer platform where millions of developers, businesses, and the largest open source community build software that advances humanity.</div>
                             <div class="site-actions">
                                 <a href="https://github.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Github', 'https://github.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Github', 'https://github.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Google Docs</div>
                             <div class="site-url">https://docs.google.com/</div>
-                            <div class="site-description">Educational resource (docs.google.com) - Online learning and reference material</div>
+                            <div class="site-description">Sign in</div>
                             <div class="site-actions">
                                 <a href="https://docs.google.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Google Docs', 'https://docs.google.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Google Docs', 'https://docs.google.com/', 'Other')">Suggest Category</button>
-                                
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">iGrade Plus</div>
+                            <div class="site-url">https://igradeplus.com/</div>
+                            <div class="site-description">An affordable school management system for schools and districts and a free, easy-to-use, highly customizable, online gradebook for individual teachers.</div>
+                            <div class="site-actions">
+                                <a href="https://igradeplus.com/" target="_blank" class="visit-btn">Visit Site</a>
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">IncarWorkReleaseUsers Categories</div>
                             <div class="site-url">https://Link is in place for mandatory entry... it is not a valid website.</div>
-                            <div class="site-description">Educational resource (Link is in place for mandatory entry... it is not a valid website.) - Online learning and reference material</div>
+                            <div class="site-description">Educational resource (Link is in place for mandatory entry... it is not a valid website.)</div>
                             <div class="site-actions">
                                 <a href="https://Link is in place for mandatory entry... it is not a valid website." target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('IncarWorkReleaseUsers Categories', 'https://Link is in place for mandatory entry... it is not a valid website.')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('IncarWorkReleaseUsers Categories', 'https://Link is in place for mandatory entry... it is not a valid website.', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Investigative Reporters and Editors</div>
                             <div class="site-url">https://ire.org/</div>
-                            <div class="site-description">Educational resource (ire.org) - Online learning and reference material</div>
+                            <div class="site-description">Investigative Reporters and Editors is a nonprofit dedicated to educating, training, connecting and empowering journalists around the world.</div>
                             <div class="site-actions">
                                 <a href="https://ire.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Investigative Reporters and Editors', 'https://ire.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Investigative Reporters and Editors', 'https://ire.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">JSTOR</div>
                             <div class="site-url">https://pep.jstor.org/</div>
-                            <div class="site-description">Educational resource (pep.jstor.org) - Online learning and reference material</div>
+                            <div class="site-description">Website: JSTOR Access in Prison</div>
                             <div class="site-actions">
                                 <a href="https://pep.jstor.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('JSTOR', 'https://pep.jstor.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('JSTOR', 'https://pep.jstor.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Kerin Marketing</div>
                             <div class="site-url">https://kerinmarketing.com/</div>
-                            <div class="site-description">Educational resource (kerinmarketing.com) - Online learning and reference material</div>
+                            <div class="site-description">Your place for marketing news in the classroom.</div>
                             <div class="site-actions">
                                 <a href="https://kerinmarketing.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Kerin Marketing', 'https://kerinmarketing.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Kerin Marketing', 'https://kerinmarketing.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Life Skills Reimagined</div>
                             <div class="site-url">https://www.lifeskillsreimagined.com/</div>
-                            <div class="site-description">Educational resource (www.lifeskillsreimagined.com) - Online learning and reference material</div>
+                            <div class="site-description">An online life skills curriculum that learners love! Life Skills Reimagined is fun, innovative, interactive, and easy to use life skills program. Proven results in the life skills teens and adults need to know. Used by organizations in 26 states and growing. Proven to teach tangible and SEL life ...</div>
                             <div class="site-actions">
                                 <a href="https://www.lifeskillsreimagined.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Life Skills Reimagined', 'https://www.lifeskillsreimagined.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Life Skills Reimagined', 'https://www.lifeskillsreimagined.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Living With Conviction</div>
                             <div class="site-url">https://livingwithconviction.org/</div>
-                            <div class="site-description">Educational resource (livingwithconviction.org) - Online learning and reference material</div>
+                            <div class="site-description">Living with Conviction: Sentenced to Debt for Life in Washington State is a collection of portraits and profiles of formerly incarcerated people who are impacted by Washington's policy on court-imposed legal financial obligations (LFO). In Washington, LFOs accrue interest at a rate of 12% from th...</div>
                             <div class="site-actions">
                                 <a href="https://livingwithconviction.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Living With Conviction', 'https://livingwithconviction.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Living With Conviction', 'https://livingwithconviction.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Lumion</div>
                             <div class="site-url">https://lumion3d.net/</div>
-                            <div class="site-description">Educational resource (lumion3d.net) - Online learning and reference material</div>
+                            <div class="site-description">Educational website (lumion3d.net)</div>
                             <div class="site-actions">
                                 <a href="https://lumion3d.net/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Lumion', 'https://lumion3d.net/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Lumion', 'https://lumion3d.net/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">MerckVeterinaryManual</div>
                             <div class="site-url">https://merckvetmanual.com/</div>
-                            <div class="site-description">Educational resource (merckvetmanual.com) - Online learning and reference material</div>
+                            <div class="site-description">The Merck Veterinary Manual has been a trusted source of animal health information for students and practicing veterinarians. It contains authoritative guidelines for the diagnosis, treatment, and prevention of animal disorders and diseases.</div>
                             <div class="site-actions">
                                 <a href="https://merckvetmanual.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('MerckVeterinaryManual', 'https://merckvetmanual.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('MerckVeterinaryManual', 'https://merckvetmanual.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Merriam-Webster</div>
                             <div class="site-url">https://merriam-webster.com/</div>
-                            <div class="site-description">Educational resource (merriam-webster.com) - Online learning and reference material</div>
+                            <div class="site-description">Find definitions for over 300,000 words from the most authoritative English dictionary. Continuously updated with new words and meanings.</div>
                             <div class="site-actions">
                                 <a href="https://merriam-webster.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Merriam-Webster', 'https://merriam-webster.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Merriam-Webster', 'https://merriam-webster.com/', 'Other')">Suggest Category</button>
-                                
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Microsoft Support</div>
+                            <div class="site-url">https://support.microsoft.com/</div>
+                            <div class="site-description">Microsoft Support is here to help you with Microsoft products. Find how-to articles, videos, and training for Microsoft Copilot, Microsoft 365, Windows 11, Surface, and more.</div>
+                            <div class="site-actions">
+                                <a href="https://support.microsoft.com/" target="_blank" class="visit-btn">Visit Site</a>
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Mozilla Developer</div>
                             <div class="site-url">https://developer.mozilla.org/</div>
-                            <div class="site-description">Educational resource (developer.mozilla.org) - Online learning and reference material</div>
+                            <div class="site-description">The MDN Web Docs site provides information about Open Web technologies including HTML, CSS, and APIs for both Web sites and progressive web apps.</div>
                             <div class="site-actions">
                                 <a href="https://developer.mozilla.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Mozilla Developer', 'https://developer.mozilla.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Mozilla Developer', 'https://developer.mozilla.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">NAVTA</div>
                             <div class="site-url">https://navta.net/</div>
-                            <div class="site-description">Educational resource (navta.net) - Online learning and reference material</div>
+                            <div class="site-description">Please enable JavaScript to proceed.</div>
                             <div class="site-actions">
                                 <a href="https://navta.net/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('NAVTA', 'https://navta.net/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('NAVTA', 'https://navta.net/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Online Veterinary Anatomy</div>
                             <div class="site-url">https://onlineveterinaryanatomy.net/</div>
-                            <div class="site-description">Educational resource (onlineveterinaryanatomy.net) - Online learning and reference material</div>
+                            <div class="site-description">Online Veterinary Anatomy Museum About the Museum</div>
                             <div class="site-actions">
                                 <a href="https://onlineveterinaryanatomy.net/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Online Veterinary Anatomy', 'https://onlineveterinaryanatomy.net/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Online Veterinary Anatomy', 'https://onlineveterinaryanatomy.net/', 'Other')">Suggest Category</button>
-                                
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Open Title sort and filter menu</div>
+                            <div class="site-url">https://Open Website sort and filter menu</div>
+                            <div class="site-description">Open Title sort and filter menu - Educational resource (Open Website sort and filter menu)</div>
+                            <div class="site-actions">
+                                <a href="https://Open Website sort and filter menu" target="_blank" class="visit-btn">Visit Site</a>
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Openstax</div>
+                            <div class="site-url">https://openstax.org/</div>
+                            <div class="site-description">OpenStax offers free college textbooks for all types of students, making education accessible &amp; affordable for everyone. Browse our list of available subjects!</div>
+                            <div class="site-actions">
+                                <a href="https://openstax.org/" target="_blank" class="visit-btn">Visit Site</a>
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">OSI Bridge</div>
                             <div class="site-url">https://osibridge.com</div>
-                            <div class="site-description">Educational resource (osibridge.com) - Online learning and reference material</div>
+                            <div class="site-description">Empowering Justice Involved with IT/Tech Training. Supporting education and innovation.</div>
                             <div class="site-actions">
                                 <a href="https://osibridge.com" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('OSI Bridge', 'https://osibridge.com')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('OSI Bridge', 'https://osibridge.com', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">PBS</div>
                             <div class="site-url">https://pbs.org/</div>
-                            <div class="site-description">Educational resource (pbs.org) - Online learning and reference material</div>
+                            <div class="site-description">Watch full episodes of your favorite PBS dramas, find in-depth news analysis and explore documentaries on history, science, art and more!</div>
                             <div class="site-actions">
                                 <a href="https://pbs.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('PBS', 'https://pbs.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('PBS', 'https://pbs.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">PearsonVue</div>
                             <div class="site-url">https://cct-pearsonvue.com/</div>
-                            <div class="site-description">Educational resource (cct-pearsonvue.com) - Online learning and reference material</div>
+                            <div class="site-description">Educational website (cct-pearsonvue.com)</div>
                             <div class="site-actions">
                                 <a href="https://cct-pearsonvue.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('PearsonVue', 'https://cct-pearsonvue.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('PearsonVue', 'https://cct-pearsonvue.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Penn Foster Customer Help</div>
                             <div class="site-url">https://pennfoster.custhelp.com/</div>
-                            <div class="site-description">Educational resource (pennfoster.custhelp.com) - Online learning and reference material</div>
+                            <div class="site-description">Type your question or keyword below Search</div>
                             <div class="site-actions">
                                 <a href="https://pennfoster.custhelp.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Penn Foster Customer Help', 'https://pennfoster.custhelp.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Penn Foster Customer Help', 'https://pennfoster.custhelp.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Penn Foster Library App</div>
                             <div class="site-url">https://pennfoster.libapps.com/</div>
-                            <div class="site-description">Educational resource (pennfoster.libapps.com) - Online learning and reference material</div>
+                            <div class="site-description">What is LibApps? LibApps at Penn Foster is a platform powering LibGuides, LibAnswers, LibCal, LibInsight, and other Springshare tools licensed by your institution. Browser Support: Chr...</div>
                             <div class="site-actions">
                                 <a href="https://pennfoster.libapps.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Penn Foster Library App', 'https://pennfoster.libapps.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Penn Foster Library App', 'https://pennfoster.libapps.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Pew Research</div>
                             <div class="site-url">https://pewresearch.org/</div>
-                            <div class="site-description">Educational resource (pewresearch.org) - Online learning and reference material</div>
+                            <div class="site-description">Pew Research Center is a nonpartisan, nonadvocacy fact tank that informs the public about the issues, attitudes and trends shaping the world.</div>
                             <div class="site-actions">
                                 <a href="https://pewresearch.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Pew Research', 'https://pewresearch.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Pew Research', 'https://pewresearch.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Pirate Ipsum</div>
                             <div class="site-url">https://pirateipsum.me/</div>
-                            <div class="site-description">Educational resource (pirateipsum.me) - Online learning and reference material</div>
+                            <div class="site-description">Website: Pirate Ipsum | Lorem Ipsum Generator</div>
                             <div class="site-actions">
                                 <a href="https://pirateipsum.me/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Pirate Ipsum', 'https://pirateipsum.me/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Pirate Ipsum', 'https://pirateipsum.me/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Politifact</div>
                             <div class="site-url">https://politifact.com/</div>
-                            <div class="site-description">Educational resource (politifact.com) - Online learning and reference material</div>
+                            <div class="site-description">PolitiFact is a fact-checking website that rates the accuracy of claims by elected officials and others on its Truth-O-Meter.</div>
                             <div class="site-actions">
                                 <a href="https://politifact.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Politifact', 'https://politifact.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Politifact', 'https://politifact.com/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Poynter</div>
                             <div class="site-url">https://poynter.org/</div>
-                            <div class="site-description">Educational resource (poynter.org) - Online learning and reference material</div>
+                            <div class="site-description">Educational website (poynter.org)</div>
                             <div class="site-actions">
                                 <a href="https://poynter.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Poynter', 'https://poynter.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Poynter', 'https://poynter.org/', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Prison Journalism Project</div>
                             <div class="site-url">https://prisonjournalismproject.org/</div>
-                            <div class="site-description">Educational resource (prisonjournalismproject.org) - Online learning and reference material</div>
+                            <div class="site-description">An independent, national nonprofit organization that trains incarcerated writers to be journalists and publishes their stories.</div>
                             <div class="site-actions">
                                 <a href="https://prisonjournalismproject.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Prison Journalism Project', 'https://prisonjournalismproject.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Prison Journalism Project', 'https://prisonjournalismproject.org/', 'Other')">Suggest Category</button>
-                                
+                            </div>
+                        </li>
+                        <li class="site-item">
+                            <div class="site-name">Washington History</div>
+                            <div class="site-url">https://www.washingtonhistory.org/</div>
+                            <div class="site-description">This Is Native Land Shaping the Story Explore Washington History Today</div>
+                            <div class="site-actions">
+                                <a href="https://www.washingtonhistory.org/" target="_blank" class="visit-btn">Visit Site</a>
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Washington State Nursery and Landscape Association</div>
                             <div class="site-url">https://www.wsnla.org</div>
-                            <div class="site-description">Educational resource (www.wsnla.org) - Online learning and reference material</div>
+                            <div class="site-description">Educational website (www.wsnla.org)</div>
                             <div class="site-actions">
                                 <a href="https://www.wsnla.org" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Washington State Nursery and Landscape Association', 'https://www.wsnla.org')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Washington State Nursery and Landscape Association', 'https://www.wsnla.org', 'Other')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
@@ -1633,56 +1258,41 @@
                         <li class="site-item">
                             <div class="site-name">AAALAC</div>
                             <div class="site-url">https://www.aaalac.org/</div>
-                            <div class="site-description">Educational resource (www.aaalac.org) - Online learning and reference material</div>
+                            <div class="site-description">AAALAC International promotes the humane treatment of animals in science through voluntary accreditation and assessment programs. AAALAC is the largest international accreditation program for animal research, teaching and testing programs.</div>
                             <div class="site-actions">
                                 <a href="https://www.aaalac.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('AAALAC', 'https://www.aaalac.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('AAALAC', 'https://www.aaalac.org/', 'Science')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">AAHA</div>
                             <div class="site-url">https://aaha.org/</div>
-                            <div class="site-description">Educational resource (aaha.org) - Online learning and reference material</div>
+                            <div class="site-description">Educational website (aaha.org)</div>
                             <div class="site-actions">
                                 <a href="https://aaha.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('AAHA', 'https://aaha.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('AAHA', 'https://aaha.org/', 'Science')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">AALAS</div>
                             <div class="site-url">https://www.aalas.org/</div>
-                            <div class="site-description">Educational resource (www.aalas.org) - Online learning and reference material</div>
+                            <div class="site-description">Educational resource website (www.aalas.org)</div>
                             <div class="site-actions">
                                 <a href="https://www.aalas.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('AALAS', 'https://www.aalas.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('AALAS', 'https://www.aalas.org/', 'Science')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Animal Endocrine</div>
                             <div class="site-url">https://animalendocrine.com/</div>
-                            <div class="site-description">Educational resource (animalendocrine.com) - Online learning and reference material</div>
+                            <div class="site-description">Specializing in feline thyroid treatment, Hypurrcat offers advanced, compassionate care for hyperthyroid cats. Located in NYC, schedule an appointment today.</div>
                             <div class="site-actions">
                                 <a href="https://animalendocrine.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Animal Endocrine', 'https://animalendocrine.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Animal Endocrine', 'https://animalendocrine.com/', 'Science')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">arXiv</div>
                             <div class="site-url">https://arxiv.org/</div>
-                            <div class="site-description">arXiv - Open access repository of scientific papers and research</div>
+                            <div class="site-description">Physics Mathematics</div>
                             <div class="site-actions">
                                 <a href="https://arxiv.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('arXiv', 'https://arxiv.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('arXiv', 'https://arxiv.org/', 'Science')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
@@ -1693,12 +1303,9 @@
                         <li class="site-item">
                             <div class="site-name">VitalSource</div>
                             <div class="site-url">https://online.vitalsource.com</div>
-                            <div class="site-description">Educational resource (online.vitalsource.com) - Online learning and reference material</div>
+                            <div class="site-description">VitalSource Bookshelf is the world’s leading platform for distributing, accessing, consuming, and engaging with digital textbooks and course materials.</div>
                             <div class="site-actions">
                                 <a href="https://online.vitalsource.com" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('VitalSource', 'https://online.vitalsource.com')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('VitalSource', 'https://online.vitalsource.com', 'Support')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
@@ -1709,67 +1316,49 @@
                         <li class="site-item">
                             <div class="site-name">Create React App</div>
                             <div class="site-url">https://create-react-app.dev/</div>
-                            <div class="site-description">React - JavaScript library for building user interfaces</div>
+                            <div class="site-description">Create React App is deprecated. Please see react.dev for modern options.</div>
                             <div class="site-actions">
                                 <a href="https://create-react-app.dev/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Create React App', 'https://create-react-app.dev/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Create React App', 'https://create-react-app.dev/', 'Technology')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Reactjs</div>
                             <div class="site-url">https://react.dev/</div>
-                            <div class="site-description">React - JavaScript library for building user interfaces</div>
+                            <div class="site-description">React is the library for web and native user interfaces. Build user interfaces out of individual pieces called components written in JavaScript. React is designed to let you seamlessly combine components written by independent people, teams, and organizations.</div>
                             <div class="site-actions">
                                 <a href="https://react.dev/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Reactjs', 'https://react.dev/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Reactjs', 'https://react.dev/', 'Technology')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Seattle Business Magazine</div>
                             <div class="site-url">https://seattlebusinessmag.com/</div>
-                            <div class="site-description">Business resource (seattlebusinessmag.com) - Professional and commercial information</div>
+                            <div class="site-description">Seattle's hub for business news, issues, and opinion.</div>
                             <div class="site-actions">
                                 <a href="https://seattlebusinessmag.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Seattle Business Magazine', 'https://seattlebusinessmag.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Seattle Business Magazine', 'https://seattlebusinessmag.com/', 'Technology')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">SQLite</div>
                             <div class="site-url">https://sqlite.org/</div>
-                            <div class="site-description">SQLite - Lightweight, serverless SQL database engine</div>
+                            <div class="site-description">Website: SQLite Home Page</div>
                             <div class="site-actions">
                                 <a href="https://sqlite.org/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('SQLite', 'https://sqlite.org/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('SQLite', 'https://sqlite.org/', 'Technology')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Stackoverflow Questions</div>
                             <div class="site-url">https://stackoverflow.com/questions/tagged/javascript</div>
-                            <div class="site-description">Stack Overflow - Developer community for programming questions and answers</div>
+                            <div class="site-description">Website: Newest 'javascript' Questions - Stack Overflow</div>
                             <div class="site-actions">
                                 <a href="https://stackoverflow.com/questions/tagged/javascript" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Stackoverflow Questions', 'https://stackoverflow.com/questions/tagged/javascript')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Stackoverflow Questions', 'https://stackoverflow.com/questions/tagged/javascript', 'Technology')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Unity</div>
                             <div class="site-url">https://unity.com/learn</div>
-                            <div class="site-description">Unity - Game development platform and engine</div>
+                            <div class="site-description">Explore online learning paths, certifications, institutional licenses, tools for educators, and more.</div>
                             <div class="site-actions">
                                 <a href="https://unity.com/learn" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Unity', 'https://unity.com/learn')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Unity', 'https://unity.com/learn', 'Technology')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
@@ -1780,106 +1369,21 @@
                         <li class="site-item">
                             <div class="site-name">Accuplacer</div>
                             <div class="site-url">https://accuplacer.org</div>
-                            <div class="site-description">Accuplacer - College placement testing and assessment</div>
+                            <div class="site-description">&lt;h1&gt;ACCUPLACER Platform for Institutions – The College Board&lt;/h1&gt; &lt;br/&gt;Login to the platform. Access is granted to accredited, degree-granting institutions and public departments of national, state and system educational governance.</div>
                             <div class="site-actions">
                                 <a href="https://accuplacer.org" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Accuplacer', 'https://accuplacer.org')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Accuplacer', 'https://accuplacer.org', 'Testing')">Suggest Category</button>
-                                
                             </div>
                         </li>
                         <li class="site-item">
                             <div class="site-name">Quizlet</div>
                             <div class="site-url">https://quizlet.com/</div>
-                            <div class="site-description">Quizlet - Study tools and flashcards for learning and memorization</div>
+                            <div class="site-description">Educational website (quizlet.com)</div>
                             <div class="site-actions">
                                 <a href="https://quizlet.com/" target="_blank" class="visit-btn">Visit Site</a>
-                                <button class="report-btn" onclick="showReportForm('Quizlet', 'https://quizlet.com/')">Report Issue</button>
-                                <button class="suggest-btn" onclick="showSuggestForm('Quizlet', 'https://quizlet.com/', 'Testing')">Suggest Category</button>
-                                
                             </div>
                         </li>
                     </ul>
                 </div>
-        </div>
-        
-        <!-- Report Form Modal -->
-        <div id="reportForm" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
-                <h3>Report Website Issue</h3>
-                <form>
-                    <input type="hidden" id="siteName" />
-                    <input type="hidden" id="siteUrl" />
-                    
-                    <div style="margin-bottom: 15px;">
-                        <label><strong>Issue Type:</strong></label><br>
-                        <select id="issueType" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="">Select an issue type...</option>
-                            <option value="site_not_loading">Site not loading</option>
-                            <option value="site_blocked">Site blocked/filtered</option>
-                            <option value="content_issues">Content issues</option>
-                            <option value="slow_loading">Slow loading</option>
-                            <option value="broken_links">Broken links</option>
-                            <option value="other">Other technical problem</option>
-                        </select>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <label><strong>Description (optional):</strong></label><br>
-                        <textarea id="description" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; height: 80px;" placeholder="Describe the issue you encountered..."></textarea>
-                    </div>
-                    
-                    <div style="text-align: right;">
-                        <button type="button" onclick="hideReportForm()" style="padding: 8px 16px; margin-right: 10px; border: 1px solid #ddd; background: white; border-radius: 4px;">Cancel</button>
-                        <button type="button" onclick="submitReport()" style="padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px;">Submit Report</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
-        <!-- Category Suggestion Form Modal -->
-        <div id="suggestForm" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 8px; width: 90%; max-width: 500px;">
-                <h3>Suggest Better Category</h3>
-                <form>
-                    <input type="hidden" id="suggestSiteName" />
-                    <input type="hidden" id="suggestSiteUrl" />
-                    <input type="hidden" id="currentCategory" />
-                    
-                    <div style="margin-bottom: 15px;">
-                        <label><strong>Current Category:</strong></label><br>
-                        <input type="text" id="currentCategoryDisplay" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;">
-                    </div>
-                    
-                    <div style="margin-bottom: 15px;">
-                        <label><strong>Suggested Category:</strong></label><br>
-                        <select id="suggestedCategory" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="">Select a better category...</option>
-                            <option value="Education">Education</option>
-                            <option value="Government">Government</option>
-                            <option value="Technology">Technology</option>
-                            <option value="Business">Business</option>
-                            <option value="Science">Science</option>
-                            <option value="Language">Language</option>
-                            <option value="Math">Math</option>
-                            <option value="Testing">Testing</option>
-                            <option value="News">News</option>
-                            <option value="Support">Support</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <label><strong>Reason (optional):</strong></label><br>
-                        <textarea id="suggestReason" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; height: 80px;" placeholder="Why do you think this category is better?"></textarea>
-                    </div>
-                    
-                    <div style="text-align: right;">
-                        <button type="button" onclick="hideSuggestForm()" style="padding: 8px 16px; margin-right: 10px; border: 1px solid #ddd; background: white; border-radius: 4px;">Cancel</button>
-                        <button type="button" onclick="submitSuggest()" style="padding: 8px 16px; background: #17a2b8; color: white; border: none; border-radius: 4px;">Submit Suggestion</button>
-                    </div>
-                </form>
-            </div>
         </div>
     </div>
 </body>
