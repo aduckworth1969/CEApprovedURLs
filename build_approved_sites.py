@@ -33,17 +33,207 @@ DESCRIPTIONS_FILE = "reports/site_descriptions.json"
 # ---------------------------------------------------------------------------
 # Categories
 # ---------------------------------------------------------------------------
+# Tuned keyword lists based on the current set of approved sites.
+# Order matters only when scores tie.
 category_keywords = {
-    "Education": ["edu", "school", "college", "university", "study", "learning", "course", "academy"],
-    "Government": ["gov", "usda", "census", "sec", "sba", "aphis"],
-    "Technology": ["tech", "react", "stackoverflow", "sqlite", "unity", "w3schools"],
-    "Business": ["business", "magazine", "worksource", "commerce"],
-    "Science": ["arxiv", "endocrine", "aaalac", "aaha", "aalas"],
-    "Language": ["rosettastone", "rhetoric"],
-    "Math": ["math", "wamap", "prisonmath"],
-    "Testing": ["accuplacer", "quizlet"],
-    "News": ["apnews", "journalist"],
-    "Support": ["sbctc", "studentaid", "vitalsource"],
+    # Programming & web dev (code-focused; design tools are allowed,
+    # but 3D creation / Blender is handled under Technology).
+    "Programming": [
+        # General dev / coding
+        "programming", "coding", "code", "developer", "developers",
+        "development", "web development", "software development",
+        "software engineer", "software engineering",
+
+        # Languages / stacks
+        "javascript", "js", "typescript", "python", "java", "c#", "c++",
+        "php", "sql", "sqlite", "html", "css",
+
+        # Frameworks / engines / docs
+        "react", "create react app", "node", "node.js", "nodejs", "express",
+        "api", "apis", "mdn",
+        "w3schools", "stack overflow", "stackoverflow", "github", "gitlab",
+        "unity", "unity learn", "unreal engine", "epic games",
+
+        # Learning platforms for coding
+        "freecodecamp", "codingame", "coderbyte", "unity learn",
+
+        # Web design helpers (still fine to treat as part of the dev toolbox)
+        "font", "fonts", "typography", "typeface",
+        "color palette", "color palettes", "palette", "palettes",
+        "designer", "designers", "web design", "ui", "ux",
+        "lorem ipsum", "ipsum",
+    ],
+
+    # General education: colleges, textbooks, libraries, curricula, etc.
+    "Education": [
+        "edu", "school", "schools", "college", "university", "universities",
+        "campus", "degree", "diploma", "high school", "k-12", "k12",
+        "course", "courses", "curriculum", "class", "classes",
+        "career school", "career and technical education",
+        "ctc", "cte",
+
+        # Textbooks / content platforms
+        "textbook", "textbooks", "online textbook", "online textbooks",
+        "openstax", "goodheart-willcox", "g-w learning", "g-w textbooks",
+        "vitalsource", "bookshelf",
+
+        # Libraries / reference / research
+        "library", "libraries", "catalog", "research database",
+        "research databases", "journal", "journals", "encyclopedia",
+        "encyclopaedia", "reference", "jstor", "ebsco",
+
+        # Learning platforms / LMS
+        "learning portal", "learning platform", "online course",
+        "online courses", "study.com", "khan academy", "aztec",
+        "gw learning", "penn foster", "life skills reimagined",
+        "boardworks", "study skills",
+
+        # Misc higher-ed signals
+        "college credit", "accredited", "credit-by-exam",
+    ],
+
+    # Government, agencies, official .gov resources
+    "Government": [
+        "gov", ".gov", "official site", "official website",
+        "department of", "federal", "agency",
+
+        # Agencies / programs present in the list
+        "usda", "aphis", "fsis", "epa", "environmental protection agency",
+        "dea", "diversion control",
+        "dol", "department of labor",
+        "hhs", "health and human services", "fda",
+        "sec", "securities and exchange commission",
+        "sba", "small business administration",
+        "census", "census bureau", "irs", "internal revenue service",
+        "bls", "bureau of labor statistics",
+        "employment security department", "esd.wa.gov",
+        "washington state noxious weed control board",
+        "usda.gov",
+    ],
+
+    # Business / career / jobs
+    "Business": [
+        "business", "commerce", "market", "finance", "management",
+        "entrepreneur", "startup", "corporate", "marketing",
+        "small business", "register your business",
+        "seattle business magazine",
+
+        # Career / job search
+        "career", "careers", "job board", "job search", "job board",
+        "worksource", "worksourcewa", "resume", "employers", "employment",
+        "indeed", "find the job that's right for you",
+    ],
+
+    # Science, veterinary, STEM reference
+    "Science": [
+        "science", "scientific", "research", "laboratory", "lab",
+        "biology", "biological", "biotechnology", "physics", "chemistry",
+        "math simulations", "stem", "phet",
+
+        # Veterinary / animal science cluster
+        "veterinary", "veterinarian", "vet tech", "vet technician",
+        "zoological", "zoology", "animal", "feline", "canine",
+        "endocrine", "anatomy", "merck veterinary manual",
+        "aaha", "aavsb", "aalas", "aaalac", "avma", "avtaa", "azvt", "navta",
+
+        # Biomedical / life science reference
+        "ncbi", "national center for biotechnology information",
+        "hypurrcat",
+    ],
+
+    # Language, writing, rhetoric
+    "Language": [
+        "dictionary", "thesaurus", "merriam-webster",
+        "vocabulary", "grammar", "conjugation",
+        "language learning", "learn a language",
+        "rosetta stone", "rosettastone",
+        "rhetoric", "oratory", "speech", "speeches",
+        "writing lab", "purdue owl", "citation", "plagiarism",
+    ],
+
+    # Math / quantitative
+    "Math": [
+        "math", "mathematics", "algebra", "calculus", "geometry",
+        "statistics", "equation", "equations", "formula", "graphing",
+        "numerical", "quantitative", "quantitative biology",
+        "quantitative finance", "phet", "simulations",
+        "wolfram|alpha", "wolfram alpha",
+        "wamap", "pauls online math notes", "get sum math",
+        "prison math project",
+    ],
+
+    # Testing & exam prep / placement / certifications
+    "Testing": [
+        "accuplacer", "placement test", "placement testing",
+        "exam", "exams", "test prep", "test preparation",
+        "practice test", "practice problems", "sample questions",
+        "ged", "pearsonvue", "pearson vue",
+        "assessment platform", "testing center", "quizlet",
+
+        # Certification / OSHA-style training
+        "certificate", "certification", "certifications",
+        "d.o.l. card", "dol card",
+        "osha 10", "osha-10",
+        "training course", "training program", "training exam",
+    ],
+
+    # News, journalism, fact-checking, media literacy
+    "News": [
+        "news", "breaking news", "latest headlines", "headline",
+        "newspaper", "magazine", "press", "editorial", "opinion",
+        "op-ed", "journalism", "journalist", "journalists",
+        "media literacy", "newsroom", "reporting",
+
+        # Specific orgs in this set
+        "ap news", "associated press",
+        "el nuevo día", "noticias", "periódico", "periodico",
+        "columbia journalism review", "cjr",
+        "poynter", "journalist's resource", "journalists resource",
+        "prison journalism project",
+        "pew research center", "fact tank",
+        "politifact", "fact-check", "fact checking",
+        "pbs",
+        "seattle business magazine",
+    ],
+
+    # History & social studies
+    "History": [
+        "history", "historical", "historical society",
+        "social studies", "civil war", "revolutionary war",
+        "battlefield", "battlefields", "american battlefield trust",
+        "washington state historical society",
+        "museum", "museums", "archives",
+        "this day in history",
+        "model train festival",
+    ],
+
+    # Support / help / portals
+    "Support": [
+        "support", "help center", "help desk", "contact support",
+        "knowledge base", "support home", "support home page",
+        "customer service", "faq", "frequently asked questions",
+        "manuals", "articles to support", "recent updates",
+
+        # Specific portals
+        "microsoft support",
+        "corrections education reference center",
+        "student support", "faculty support",
+        "penn foster support", "libapps login",
+    ],
+
+    # General technology / tools that are not clearly programming-focused
+    "Technology": [
+        "tech", "technology", "cloud platform", "cloud service",
+        "online platform", "digital platform", "saas",
+        "video conferencing", "web conferencing", "webinars",
+        "zoom", "zoom rooms",
+        "devices", "device", "hardware", "networking",
+        "it training", "computer skills", "computer training",
+
+        # 3D / creative tools that are more "software" than "coding"
+        "3d software", "3d creation software", "3d creation",
+        "blender",
+    ],
 }
 
 
@@ -118,17 +308,56 @@ def save_category_changes(changes):
         print(f"Warning: Could not save category changes file: {e}")
 
 
-def categorize_auto(site_name: str, site_url: str) -> str:
-    """Fallback automatic categorization using keyword rules."""
-    combined = f"{site_name} {site_url}".lower()
+def categorize_auto(site_name: str, site_url: str, description: str | None) -> str:
+    """
+    Automatic categorization using a simple scoring system.
+
+    - Looks at site title, URL, and description.
+    - Each keyword match contributes to a category score:
+        * URL match:      +3
+        * Title match:    +2
+        * Description:    +1
+    - Returns the category with the highest score, or 'Other' if no matches.
+    """
+    text_title = (site_name or "").lower()
+    text_url = (site_url or "").lower()
+    text_desc = (description or "").lower()
+
+    best_category = "Other"
+    best_score = 0
+
     for category, keywords in category_keywords.items():
-        if any(keyword in combined for keyword in keywords):
-            return category
-    return "Other"
+        score = 0
+        for keyword in keywords:
+            kw = keyword.lower()
+            if kw in text_url:
+                score += 3
+            if kw in text_title:
+                score += 2
+            if kw in text_desc:
+                score += 1
+
+        if score > best_score:
+            best_score = score
+            best_category = category
+
+    if best_score == 0:
+        return "Other"
+    return best_category
 
 
-def get_category_for_site(site_name: str, site_url: str, category_changes: list) -> str:
-    """Get category, respecting admin overrides first."""
+def get_category_for_site(
+    site_name: str,
+    site_url: str,
+    description: str,
+    category_changes: list,
+) -> str:
+    """
+    Get category for a site, respecting admin overrides first.
+
+    - If there is an applied override for this (site_name, site_url), use it.
+    - Otherwise, use automatic categorization based on title, URL, and description.
+    """
     for change in category_changes:
         if (
             change.get("site_name") == site_name
@@ -136,7 +365,8 @@ def get_category_for_site(site_name: str, site_url: str, category_changes: list)
             and change.get("status") == "applied"
         ):
             return change.get("new_category", "Other")
-    return categorize_auto(site_name, site_url)
+
+    return categorize_auto(site_name, site_url, description)
 
 
 # ---------------------------------------------------------------------------
@@ -659,7 +889,8 @@ def main(argv=None):
             force_regen=force_regen,
         )
 
-        category = get_category_for_site(name, url, category_changes)
+        # Use description-aware categorization (with admin overrides)
+        category = get_category_for_site(name, url, desc, category_changes)
 
         if embed_favicons:
             # We do not fetch here (that happens in build_sections_html),
