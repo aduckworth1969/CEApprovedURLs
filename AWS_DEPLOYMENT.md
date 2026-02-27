@@ -69,6 +69,8 @@ WorkingDirectory=/var/www/approved-websites
 ExecStart=/usr/bin/python3 /var/www/approved-websites/server.py
 Restart=always
 RestartSec=10
+# Required: set admin password via env (never commit passwords to config)
+Environment=ADMIN_PASSWORD=your_secure_password_here
 
 [Install]
 WantedBy=multi-user.target
@@ -100,7 +102,14 @@ sudo systemctl status approved-websites
 
 ## 🔒 **Security Configuration**
 
-### 1. **File Permissions**
+### 1. **Admin Password**
+The admin password is required. Set it via one of these methods:
+
+- **.env file** (recommended): Copy `.env.example` to `.env` and set `ADMIN_PASSWORD=your_secure_password`. The app loads this automatically.
+- **systemd**: Add `Environment=ADMIN_PASSWORD=your_secure_password` to the `[Service]` section (as shown above)
+- **Manual run**: `ADMIN_PASSWORD=your_secure_password python3 server.py`
+
+### 2. **File Permissions**
 ```bash
 # Set proper permissions
 sudo chmod 644 /var/www/approved-websites/*.py
@@ -109,7 +118,7 @@ sudo chmod 600 /var/www/reports/site_reports.json
 sudo chmod 755 /var/www/reports/backups/
 ```
 
-### 2. **Firewall Rules**
+### 3. **Firewall Rules**
 ```bash
 # Configure firewall (if using)
 sudo ufw allow 80/tcp
@@ -118,7 +127,7 @@ sudo ufw allow 22/tcp
 sudo ufw enable
 ```
 
-### 3. **Access Control**
+### 4. **Access Control**
 ```bash
 # Restrict admin dashboard access
 # Add IP restrictions in server.py or use AWS Security Groups

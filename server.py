@@ -6,7 +6,16 @@ Handles user reports and provides admin interface for IT staff
 
 import json
 import os
+import sys
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+if not ADMIN_PASSWORD:
+    print("Error: ADMIN_PASSWORD must be set in .env file. Copy .env.example to .env and set your password.")
+    sys.exit(1)
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 import threading
@@ -23,8 +32,6 @@ REPORTS_DIR = "./reports"  # Local directory for testing
 REPORTS_FILE = os.path.join(REPORTS_DIR, "site_reports.json")
 BACKUP_DIR = os.path.join(REPORTS_DIR, "backups")
 PORT = 8081  # Changed to avoid conflicts
-ADMIN_PASSWORD = "IT_ADMIN_2025"  # Change this in production!
-
 # Ensure directories exist
 os.makedirs(REPORTS_DIR, exist_ok=True)
 os.makedirs(BACKUP_DIR, exist_ok=True)
@@ -1107,7 +1114,7 @@ def start_server():
     print(f"📁 Reports Directory: {REPORTS_DIR}")
     print(f"📝 Reports File: {REPORTS_FILE}")
     print(f"💾 Backup Directory: {BACKUP_DIR}")
-    print(f"🔑 Admin password: {ADMIN_PASSWORD}")
+    print(f"🔑 Admin password: (from .env)")
     print(f"\n🧪 LOCAL TESTING FEATURES:")
     print(f"   • Reports saved to local file system")
     print(f"   • Automatic backups created")

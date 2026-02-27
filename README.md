@@ -24,6 +24,9 @@ This system is designed specifically for prison environments with strict securit
 
 ## 🚀 Quick Start
 
+### 0. Configure Admin Password (required for server)
+Copy `.env.example` to `.env` and set your admin dashboard password. The server will not start without this.
+
 ### 1. Generate Website Listing
 ```bash
 python main.py
@@ -111,8 +114,7 @@ python server.py
 
 ### Requirements:
 - Python 3.7+
-- pandas
-- openpyxl
+- pandas, openpyxl, requests, beautifulsoup4, python-dotenv
 - Standard library modules
 
 ### Files:
