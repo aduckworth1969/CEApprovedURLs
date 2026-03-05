@@ -26,6 +26,9 @@ For AWS and server deployment instructions, see:
 
 ## 🚀 Quick Start (Local)
 
+### 0. Configure Admin Password (required for server)
+Copy `.env.example` to `.env` and set your admin dashboard password. The server will not start without this.
+
 ### 1. Generate Website Listing
 
 ```bash

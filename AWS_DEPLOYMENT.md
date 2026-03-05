@@ -135,6 +135,9 @@ User=ubuntu
 WorkingDirectory=/home/ubuntu/approvedurlpage-henness
 ExecStart=/usr/bin/python3 web_server.py
 Restart=always
+RestartSec=10
+# Required: set admin password via env (never commit passwords to config)
+Environment=ADMIN_PASSWORD=your_secure_password_here
 
 [Install]
 WantedBy=multi-user.target
@@ -148,18 +151,58 @@ sudo systemctl enable approved-sites
 sudo systemctl start approved-sites
 ```
 
-Check status:
+## 📁 **File Structure on AWS Server**
+```
+/var/www/approved-websites/
+├── main.py                    # HTML generator
+├── server.py                  # Web server
+├── run.py                     # Launch script
+├── 20250807_Whitelist_Sites.xlsx  # Excel data
+└── approved_websites.html     # Generated HTML
 
-```bash
-sudo systemctl status approved-sites
+/var/www/reports/
+├── site_reports.json          # Main reports file
+└── backups/                   # Automatic backups
+    ├── reports_backup_20250101_120000.json
+    └── reports_backup_20250101_130000.json
 ```
 
----
+## 🔒 **Security Configuration**
 
-## 🔄 Updating the Website on AWS
+### 1. **Admin Password**
+The admin password is required. Set it via one of these methods:
 
-When you receive a new SharePoint export:
+- **.env file** (recommended): Copy `.env.example` to `.env` and set `ADMIN_PASSWORD=your_secure_password`. The app loads this automatically.
+- **systemd**: Add `Environment=ADMIN_PASSWORD=your_secure_password` to the `[Service]` section (as shown above)
+- **Manual run**: `ADMIN_PASSWORD=your_secure_password python3 server.py`
 
+### 2. **File Permissions**
+```bash
+# Set proper permissions
+sudo chmod 644 /var/www/approved-websites/*.py
+sudo chmod 644 /var/www/approved-websites/*.html
+sudo chmod 600 /var/www/reports/site_reports.json
+sudo chmod 755 /var/www/reports/backups/
+```
+
+### 3. **Firewall Rules**
+```bash
+# Configure firewall (if using)
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 22/tcp
+sudo ufw enable
+```
+
+### 4. **Access Control**
+```bash
+# Restrict admin dashboard access
+# Add IP restrictions in server.py or use AWS Security Groups
+```
+
+## 📊 **Data Management**
+
+### 1. **Backup Strategy**
 ```bash
 scp SharePoint_List_Export_20251208_145101.csv ubuntu@YOUR_EC2_IP:/home/ubuntu/approvedurlpage-henness/
 ssh ubuntu@YOUR_EC2_IP
