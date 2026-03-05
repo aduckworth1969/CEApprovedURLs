@@ -63,7 +63,7 @@ python run_app.py
 ## 📁 Current File Structure
 
 ```
-approvedurlpage-henness/
+root/
 ├── build_approved_sites.py        # CSV → HTML generator
 ├── run_app.py                    # Build + start server launcher
 ├── web_server.py                 # Secure local HTTP server

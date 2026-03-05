@@ -27,7 +27,7 @@ The system is designed to:
 Your deployed directory should contain:
 
 ```
-approvedurlpage-henness/
+root/
 ├── build_approved_sites.py        # CSV → HTML generator
 ├── run_app.py                    # Build + start server launcher
 ├── web_server.py                 # Secure local HTTP server
@@ -69,7 +69,7 @@ Use **SCP**, **SFTP**, or **Git**:
 
 ```bash
 git clone <your-repo-url>
-cd approvedurlpage-henness
+cd approvedurlpage
 ```
 
 ---
@@ -127,13 +127,14 @@ Paste:
 
 ```ini
 [Unit]
-Description=Approved Websites Secure Server
+Description=Approved Websites System
 After=network.target
 
 [Service]
-User=ubuntu
-WorkingDirectory=/home/ubuntu/approvedurlpage-henness
-ExecStart=/usr/bin/python3 web_server.py
+Type=simple
+User=ec2-user
+WorkingDirectory=/var/www/approved-websites
+ExecStart=/usr/bin/python3 /var/www/approved-websites/web_server.py
 Restart=always
 RestartSec=10
 # Required: set admin password via env (never commit passwords to config)
@@ -204,9 +205,9 @@ sudo ufw enable
 
 ### 1. **Backup Strategy**
 ```bash
-scp SharePoint_List_Export_20251208_145101.csv ubuntu@YOUR_EC2_IP:/home/ubuntu/approvedurlpage-henness/
+scp SharePoint_List_Export_20251208_145101.csv s3://your-bucket/reports/weekly_backup_$DATE.json
 ssh ubuntu@YOUR_EC2_IP
-cd approvedurlpage-henness
+cd approvedurlpage
 python3 run_app.py
 sudo systemctl restart approved-sites
 ```
