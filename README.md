@@ -1,179 +1,170 @@
-# Approved Websites System - Prison Environment
+# Approved Websites System – Prison Environment
 
-## 🔒 Security Features
+> ⚠️ **Security-First, Offline-Capable Website Directory for Corrections Education**
 
-This system is designed specifically for prison environments with strict security requirements:
+This system generates and serves a secure, categorized directory of **approved websites** for incarcerated students. It is designed to operate entirely on a **local network**, with **no cloud dependencies**, while providing IT staff with a private administrative reporting interface.
 
-### ✅ **User Privacy Protected**
-- **Reports are NOT visible to other incarcerated students**
-- **No user-to-user communication**
-- **No shared comment system**
-- **Each user's reports are private**
+---
 
-### ✅ **IT Staff Access Only**
-- **Admin dashboard accessible only to IT staff**
-- **All reports stored securely on local server**
-- **No external network dependencies**
-- **Complete audit trail of all reports**
+## 🔗 Deployment Guide
 
-### ✅ **Local Data Storage**
-- **All data stays on local server**
-- **No cloud services or external APIs**
-- **Reports stored in encrypted JSON format**
-- **Backup and export capabilities**
+For AWS and server deployment instructions, see:
 
-## 🚀 Quick Start
+➡️ **[AWS Deployment Guide](AWS_DEPLOYMENT.md)**
+
+---
+
+## ✅ Key Security Features
+
+- **User privacy protected** – reports are never visible to other users
+- **IT staff access only** – admin dashboard is restricted
+- **No external services required** – fully offline capable
+- **Local JSON storage** with controlled access
+- **Auditable report trail** with timestamps
+
+---
+
+## 🚀 Quick Start (Local)
 
 ### 0. Configure Admin Password (required for server)
 Copy `.env.example` to `.env` and set your admin dashboard password. The server will not start without this.
 
 ### 1. Generate Website Listing
+
 ```bash
-python main.py
+python build_approved_sites.py SharePoint_List_Export_20251208_145101.csv
+```
+
+Or auto-detect the latest export:
+
+```bash
+python run_app.py
 ```
 
 ### 2. Start Secure Server
+
 ```bash
-python server.py
+python web_server.py
+```
+
+Or launch everything together:
+
+```bash
+python run_app.py
 ```
 
 ### 3. Access Interfaces
-- **User Interface**: http://localhost:8080
-- **IT Admin Dashboard**: http://localhost:8080/admin
+
+- **User Interface**: `http://localhost:8080`
+- **IT Admin Dashboard**: `http://localhost:8080/admin`
+
+---
+
+## 📁 Current File Structure
+
+```
+root/
+├── build_approved_sites.py        # CSV → HTML generator
+├── run_app.py                    # Build + start server launcher
+├── web_server.py                 # Secure local HTTP server
+├── template.html                 # UI template
+├── index.html                    # Generated site directory
+├── reports/
+│   ├── site_reports.json
+│   ├── site_descriptions.json
+│   └── category_changes.json
+└── SharePoint_List_Export_*.csv
+```
+
+---
 
 ## 📱 User Interface Features
 
-### For Incarcerated Students:
-- Browse approved websites by category
-- Search for specific sites
-- Report issues with websites
-- Clean, simple interface
-- No access to other users' reports
+### For Incarcerated Students
 
-### Report Types Available:
+- Browse approved websites by category
+- Favorites with drag-and-drop ordering
+- Report issues with websites
+- Clean, simplified interface
+- No user tracking or cross-user visibility
+
+### Report Types Available
+
 - Site not loading
-- Site blocked/filtered
-- Content issues
-- Slow loading
+- Site blocked or filtered
 - Broken links
+- Slow loading
+- Content issues
 - Other technical problems
+
+---
 
 ## 🔒 IT Admin Dashboard
 
-### Features:
+### Features
+
 - View all submitted reports
-- Filter by issue type
-- See affected sites
-- Export reports for analysis
-- Real-time updates
-- Complete audit trail
+- Filter by issue type and site
+- Export reports
+- Full timestamped audit trail
 
-### Security:
-- Password protected access
+### Security
+
+- Password protected
 - Local server only
-- No external dependencies
-- Complete data control
+- No external authentication
+- No user identity stored
 
-## 📊 Data Management
+---
 
-### Report Storage:
-- **File**: `site_reports.json`
-- **Format**: JSON with timestamps
-- **Backup**: Manual export available
-- **Privacy**: No user identification stored
+## 📊 Report Data
 
-### Report Structure:
+### Storage
+
+- **File**: `reports/site_reports.json`
+- **Format**: JSON
+- **Backups**: Manual or scheduled
+
+### Example Report
+
 ```json
 {
   "site_name": "Example Site",
   "site_url": "https://example.com",
   "issue_type": "site_not_loading",
   "description": "User description",
-  "timestamp": "2025-01-XX...",
+  "timestamp": "2025-01-01T12:00:00",
   "report_id": "unique_id"
 }
 ```
 
-## 🛡️ Security Considerations
+---
 
-### For Prison Environment:
-1. **No User Identification**: Reports don't identify specific users
-2. **Local Storage Only**: All data stays on local server
-3. **IT Control**: Only IT staff can access reports
-4. **No External Access**: System works offline
-5. **Audit Trail**: Complete logging of all activities
+## 🛡️ Prison Environment Design Goals
 
-### Deployment Recommendations:
-1. **Dedicated Server**: Run on prison IT network only
-2. **Access Control**: Restrict admin dashboard access
-3. **Regular Backups**: Export reports regularly
-4. **Monitoring**: Monitor server logs for issues
-5. **Updates**: Keep system updated for security
-
-## 🔧 Technical Details
-
-### Requirements:
-- Python 3.7+
-- pandas, openpyxl, requests, beautifulsoup4, python-dotenv
-- Standard library modules
-
-### Files:
-- `main.py` - Generates HTML from Excel
-- `server.py` - Secure HTTP server
-- `run.py` - Launch script
-- `site_reports.json` - Report storage
-- `approved_websites.html` - User interface
-
-### Port Configuration:
-- Default: Port 8080
-- Change in `server.py` if needed
-- Ensure port is available
-
-## 📋 Usage Instructions
-
-### For IT Staff:
-1. Run `python run.py` to start system
-2. Access admin dashboard at `/admin`
-3. Monitor reports regularly
-4. Export data for analysis
-5. Update website list as needed
-
-### For Users:
-1. Open browser to local server
-2. Browse websites by category
-3. Click "Report Issue" for problems
-4. Fill out simple form
-5. Submit report (goes to IT only)
-
-## ⚠️ Important Notes
-
-- **Reports are private** - users cannot see other users' reports
-- **IT access only** - admin dashboard is restricted
-- **Local data** - no external services used
-- **Secure by design** - built for prison environment
-- **Audit ready** - complete logging and tracking
-
-## 🔄 Updates and Maintenance
-
-### Regular Tasks:
-1. **Monitor reports** - Check admin dashboard daily
-2. **Export data** - Backup reports regularly
-3. **Update sites** - Refresh Excel file as needed
-4. **System updates** - Keep Python and dependencies current
-5. **Security review** - Regular security assessments
-
-### Troubleshooting:
-- Check server logs for errors
-- Verify file permissions
-- Ensure port availability
-- Test report submission
-- Validate admin access
+- No user identity tracking
+- No peer-to-peer communication
+- No shared report visibility
+- Fully offline capable
+- IT-controlled updates and exports
 
 ---
 
-**Built for secure prison environments with privacy and security as top priorities.**
+## 🔄 Maintenance Workflow
 
+1. Upload new SharePoint CSV
+2. Run `python run_app.py`
+3. Review reports via `/admin`
+4. Export backups as needed
 
+---
 
+## ✅ Recommended Execution Flow
 
+- **Daily use**: `python web_server.py`
+- **When CSV updates**: `python run_app.py`
+
+---
+
+**Built for secure corrections education environments with privacy and operational integrity as top priorities.**
 

@@ -1,62 +1,130 @@
-# AWS Deployment Guide - Approved Websites System
+# AWS Deployment Guide – Approved Websites System
 
-## ☁️ AWS Server Setup
+This guide covers deploying the **Approved Websites System** to AWS using the updated file structure and execution flow.
 
-### 1. **EC2 Instance Configuration**
-```bash
-# Recommended instance type
-t3.small or t3.medium (depending on user load)
+➡️ **Back to main documentation:** [README.md](README.md)
 
-# Operating System
-Amazon Linux 2 or Ubuntu 20.04 LTS
+---
 
-# Security Group Rules
-- Port 80 (HTTP) - Open to prison network only
-- Port 443 (HTTPS) - Optional, for SSL
-- Port 22 (SSH) - IT staff access only
+## ✅ What This Deploys
+
+This AWS deployment hosts:
+
+* `index.html` – the generated approved website directory
+* `web_server.py` – the local-style secure HTTP server
+* `reports/*.json` – persistent report storage
+
+The system is designed to:
+
+* Run securely on a **single EC2 instance**
+* Serve traffic on an **internal network or VPN**
+* Avoid cloud dependencies after initial deployment
+
+---
+
+## 📁 Required Project Files on the Server
+
+Your deployed directory should contain:
+
+```
+root/
+├── build_approved_sites.py        # CSV → HTML generator
+├── run_app.py                    # Build + start server launcher
+├── web_server.py                 # Secure local HTTP server
+├── template.html                 # UI template
+├── index.html                    # Generated site directory
+├── reports/
+│   ├── site_reports.json
+│   ├── site_descriptions.json
+│   └── category_changes.json
+└── SharePoint_List_Export_*.csv   # Optional if building on-server
 ```
 
-### 2. **Server Setup Commands**
+---
+
+## 🖥️ EC2 Instance Requirements
+
+* **AMI**: Ubuntu 22.04 LTS (recommended)
+* **Instance Type**: t3.small or higher
+* **Storage**: 20–50 GB
+* **Security Group**:
+
+  * Allow inbound TCP **8080** (or your chosen port)
+  * Optional SSH (22) restricted to admin IPs
+
+---
+
+## 🔧 System Setup
+
+### 1. Install System Packages
+
 ```bash
-# Update system
-sudo yum update -y  # Amazon Linux
-# or
-sudo apt update && sudo apt upgrade -y  # Ubuntu
-
-# Install Python 3
-sudo yum install python3 python3-pip -y  # Amazon Linux
-# or
-sudo apt install python3 python3-pip -y  # Ubuntu
-
-# Install required packages
-pip3 install pandas openpyxl
-
-# Create application directory
-sudo mkdir -p /var/www/approved-websites
-sudo chown ec2-user:ec2-user /var/www/approved-websites
-
-# Create reports directory
-sudo mkdir -p /var/www/reports
-sudo chown ec2-user:ec2-user /var/www/reports
-sudo chmod 755 /var/www/reports
+sudo apt update
+sudo apt install -y python3 python3-pip git
 ```
 
-### 3. **File Upload**
+### 2. Upload Project Files
+
+Use **SCP**, **SFTP**, or **Git**:
+
 ```bash
-# Upload files to server
-scp -i your-key.pem main.py ec2-user@your-server:/var/www/approved-websites/
-scp -i your-key.pem server.py ec2-user@your-server:/var/www/approved-websites/
-scp -i your-key.pem run.py ec2-user@your-server:/var/www/approved-websites/
-scp -i your-key.pem 20250807_Whitelist_Sites.xlsx ec2-user@your-server:/var/www/approved-websites/
+git clone <your-repo-url>
+cd approvedurlpage
 ```
 
-### 4. **Service Configuration**
+---
+
+## 📄 Generating the Website on AWS
+
+If you are generating the site **on the EC2 instance**:
+
 ```bash
-# Create systemd service file
-sudo nano /etc/systemd/system/approved-websites.service
+python3 build_approved_sites.py SharePoint_List_Export_20251208_145101.csv
 ```
 
-**Service file content:**
+Or to auto-detect the latest CSV:
+
+```bash
+python3 run_app.py
+```
+
+This will generate:
+
+```
+index.html
+reports/site_descriptions.json
+reports/site_reports.json
+reports/category_changes.json
+```
+
+---
+
+## 🚀 Running the Server on AWS
+
+### Manual Run
+
+```bash
+python3 web_server.py
+```
+
+Server will listen at:
+
+```
+http://YOUR_EC2_IP:8080
+```
+
+---
+
+## ▶️ Production Run Using systemd (Recommended)
+
+Create a service file:
+
+```bash
+sudo nano /etc/systemd/system/approved-sites.service
+```
+
+Paste:
+
 ```ini
 [Unit]
 Description=Approved Websites System
@@ -66,7 +134,7 @@ After=network.target
 Type=simple
 User=ec2-user
 WorkingDirectory=/var/www/approved-websites
-ExecStart=/usr/bin/python3 /var/www/approved-websites/server.py
+ExecStart=/usr/bin/python3 /var/www/approved-websites/web_server.py
 Restart=always
 RestartSec=10
 # Required: set admin password via env (never commit passwords to config)
@@ -76,12 +144,12 @@ Environment=ADMIN_PASSWORD=your_secure_password_here
 WantedBy=multi-user.target
 ```
 
+Enable and start:
+
 ```bash
-# Enable and start service
 sudo systemctl daemon-reload
-sudo systemctl enable approved-websites
-sudo systemctl start approved-websites
-sudo systemctl status approved-websites
+sudo systemctl enable approved-sites
+sudo systemctl start approved-sites
 ```
 
 ## 📁 **File Structure on AWS Server**
@@ -137,141 +205,42 @@ sudo ufw enable
 
 ### 1. **Backup Strategy**
 ```bash
-# Daily backup script
-#!/bin/bash
-DATE=$(date +%Y%m%d)
-cp /var/www/reports/site_reports.json /var/www/reports/backups/daily_backup_$DATE.json
-
-# Weekly backup to S3 (optional)
-aws s3 cp /var/www/reports/site_reports.json s3://your-bucket/reports/weekly_backup_$DATE.json
-```
-
-### 2. **Log Monitoring**
-```bash
-# View service logs
-sudo journalctl -u approved-websites -f
-
-# View application logs
-tail -f /var/log/approved-websites.log
-```
-
-### 3. **Data Export**
-```bash
-# Export reports for analysis
-python3 -c "
-import json
-with open('/var/www/reports/site_reports.json', 'r') as f:
-    reports = json.load(f)
-print(f'Total reports: {len(reports)}')
-for report in reports:
-    print(f'{report[\"site_name\"]} - {report[\"issue_type\"]}')
-"
-```
-
-## 🔧 **Maintenance Tasks**
-
-### 1. **Update Website List**
-```bash
-# Upload new Excel file
-scp -i your-key.pem new_whitelist.xlsx ec2-user@your-server:/var/www/approved-websites/
-
-# Regenerate HTML
-cd /var/www/approved-websites
-python3 main.py
-
-# Restart service
-sudo systemctl restart approved-websites
-```
-
-### 2. **Monitor System**
-```bash
-# Check service status
-sudo systemctl status approved-websites
-
-# Check disk space
-df -h
-
-# Check memory usage
-free -h
-
-# Check reports count
-wc -l /var/www/reports/site_reports.json
-```
-
-### 3. **Security Updates**
-```bash
-# Update system packages
-sudo yum update -y
-
-# Update Python packages
-pip3 install --upgrade pandas openpyxl
-
-# Restart service after updates
-sudo systemctl restart approved-websites
-```
-
-## 🌐 **Access URLs**
-
-### **For Users (Incarcerated Students):**
-- `http://your-aws-server/` - Main website listing
-- Clean interface, no access to reports
-
-### **For IT Staff:**
-- `http://your-aws-server/admin` - Admin dashboard
-- View all reports, statistics, export data
-
-## ⚠️ **Important Security Notes**
-
-1. **Network Isolation**: Ensure server is only accessible from prison network
-2. **Regular Backups**: Set up automated backups to S3 or local storage
-3. **Access Logs**: Monitor who accesses the admin dashboard
-4. **File Permissions**: Keep reports directory secure
-5. **Service Monitoring**: Monitor service health and restart if needed
-
-## 🚨 **Troubleshooting**
-
-### **Service Won't Start:**
-```bash
-# Check logs
-sudo journalctl -u approved-websites -n 50
-
-# Check file permissions
-ls -la /var/www/approved-websites/
-
-# Test manually
-cd /var/www/approved-websites
-python3 server.py
-```
-
-### **Reports Not Saving:**
-```bash
-# Check directory permissions
-ls -la /var/www/reports/
-
-# Check disk space
-df -h
-
-# Test file write
-echo "test" > /var/www/reports/test.txt
-```
-
-### **Admin Dashboard Not Loading:**
-```bash
-# Check if service is running
-sudo systemctl status approved-websites
-
-# Check port binding
-netstat -tlnp | grep :80
-
-# Test local access
-curl http://localhost/admin
+scp SharePoint_List_Export_20251208_145101.csv s3://your-bucket/reports/weekly_backup_$DATE.json
+ssh ubuntu@YOUR_EC2_IP
+cd approvedurlpage
+python3 run_app.py
+sudo systemctl restart approved-sites
 ```
 
 ---
 
-**This setup provides a secure, scalable solution for your prison environment with complete data control and IT oversight.**
+## 🔐 Security Recommendations
 
+* Restrict port **8080** to internal IP ranges whenever possible
+* Do **not** expose the admin dashboard publicly
+* Use VPN or AWS Security Groups for access control
+* Regularly back up the `reports/` directory
 
+---
 
+## ✅ Verification Checklist
 
+* [ ] `index.html` loads at `http://EC2_IP:8080`
+* [ ] Favorites work and persist across refresh
+* [ ] Reports submit successfully
+* [ ] `/admin` shows all saved reports
+* [ ] `reports/site_reports.json` updates in real time
 
+---
+
+## ✅ Supported Execution Modes
+
+| Mode          | Command                                      |
+| ------------- | -------------------------------------------- |
+| Build Only    | `python3 build_approved_sites.py export.csv` |
+| Build + Serve | `python3 run_app.py`                         |
+| Serve Only    | `python3 web_server.py`                      |
+
+---
+
+All file names, commands, and service configuration now match the **current production naming convention**.

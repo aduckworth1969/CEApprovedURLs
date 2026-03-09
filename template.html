@@ -1,0 +1,1964 @@
+<html>
+
+  <head>
+    <meta charset="utf-8">
+    <title>Approved Websites for Incarcerated Students</title>
+    <style>
+      :root {
+        --sidebar-width: 280px;
+        --page-gutter: 24px;
+        --content-max: 1200px;
+        --btn-h: 36px;
+        /* unified button height for Visit + Favorite */
+      }
+
+      /* Base */
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.6;
+        background: #f5f5f5;
+        color: #212529;
+      }
+
+      /* Page wrapper (header + main) */
+      .page {
+        padding: var(--page-gutter);
+        margin: 0 auto;
+        max-width: none;
+        /* let .container control width */
+        min-height: 60vh;
+        transition: padding-left .25s ease;
+      }
+
+      /* Header */
+      .site-header {
+        max-width: var(--content-max);
+        margin: 0 auto;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        margin-bottom: 16px;
+        font-weight: 700;
+        position: relative;
+      }
+
+      .site-header h1 {
+        margin: 0;
+        font-size: 2.2em;
+      }
+
+      .site-header p {
+        margin: 10px 0 0;
+        opacity: .9;
+      }
+
+      /* Small buttons used in sidebar settings row */
+      .setting-btn {
+        flex: 1 1 0;
+        height: 40px;
+        border: 1px solid #d0d5da;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .setting-btn .icon {
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .setting-btn .label {
+        font-size: 14px;
+      }
+
+      /* Main content */
+      .container {
+        max-width: var(--content-max);
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+      }
+
+      /* Sidebar */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: var(--sidebar-width);
+        height: 100vh;
+        background: #f8f9fa;
+        border-right: 1px solid #e9ecef;
+        z-index: 300;
+        transform: translateX(-100%);
+        transition: transform .25s ease, box-shadow .25s ease;
+        display: flex;
+        /* layout: header | scrollable content | footer settings */
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 10px 12px;
+        flex: 0 0 auto;
+      }
+
+      .sidebar-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid #d0d5da;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .sidebar-content {
+        padding: 16px 20px 24px;
+        overflow-y: auto;
+        flex: 1 1 auto;
+        /* scrollable middle */
+      }
+
+      /* Settings footer pinned to bottom */
+      .sidebar-settings {
+        padding: 12px 20px 16px;
+        border-top: 1px solid #e9ecef;
+        background: inherit;
+        flex: 0 0 auto;
+        position: sticky;
+        bottom: 0;
+      }
+
+      .settings-row {
+        display: flex;
+        gap: 10px;
+      }
+
+      /* Backdrop */
+      .backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .35);
+        z-index: 250;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .2s ease;
+      }
+
+      /* Hamburger */
+      .hamburger {
+        position: fixed;
+        left: 12px;
+        top: 12px;
+        z-index: 400;
+        width: 42px;
+        height: 42px;
+        border: 1px solid #d0d5da;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+      }
+
+      /* ---- Content styles ---- */
+      .site-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .site-item {
+        position: relative;
+        /* for favicon in grid/detailed */
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        padding: 20px;
+        transition: box-shadow .2s;
+      }
+
+      .site-item:hover {
+        box-shadow: 0 2px 10px rgba(0, 0, 0, .1);
+      }
+
+      .site-name {
+        font-size: 1.2em;
+        font-weight: 600;
+        color: #212529;
+        margin-bottom: 8px;
+      }
+
+      .site-url {
+        color: #6c757d;
+        font-size: .95em;
+        margin-bottom: 10px;
+        word-break: break-all;
+      }
+
+      .site-description {
+        color: #495057;
+        font-size: .9em;
+        line-height: 1.4;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #007bff;
+      }
+
+      /* Visit button (visuals) */
+      .visit-btn {
+        background: #28a745;
+        color: #fff;
+        padding: 8px 16px;
+        border: 1px solid transparent;
+        /* balances favorite button border */
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: .9em;
+        white-space: nowrap;
+        display: inline-flex;
+        /* align height with star button */
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        /* unify sizing model */
+        height: var(--btn-h);
+        /* exact same height as favorite */
+        line-height: 1;
+        vertical-align: middle;
+      }
+
+      .visit-btn:hover {
+        background: #218838;
+        color: #fff;
+        text-decoration: none;
+      }
+
+      .category-section {
+        margin-bottom: 40px;
+      }
+
+      .category-title {
+        color: #343a40;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 10px;
+        margin: 0 0 20px;
+        font-size: 1.5em;
+        font-weight: 700;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .search-section {
+        margin: 8px 0 16px;
+      }
+
+      .search-section h3 {
+        margin: 0 0 10px;
+        color: #2b2f36;
+        font-size: 1.05em;
+        font-weight: 700;
+      }
+
+      .search-section input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #cfd3da;
+        border-radius: 6px;
+        font-size: 16px;
+        box-sizing: border-box;
+        background: #ffffff;
+        color: #1f2937;
+      }
+
+      .search-section input::placeholder {
+        color: #6b7280;
+      }
+
+      .categories-section h3 {
+        margin: 8px 0 10px;
+        color: #2b2f36;
+        font-size: 1.05em;
+        font-weight: 700;
+      }
+
+      .category-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .category-item {
+        margin-bottom: 8px;
+      }
+
+      .category-link {
+        display: block;
+        padding: 12px 15px;
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        text-decoration: none;
+        color: #495057;
+        transition: transform .2s ease, background .2s ease;
+      }
+
+      .category-link:hover {
+        background: #e9ecef;
+        transform: translateX(5px);
+        color: #495057;
+        text-decoration: none;
+      }
+
+      .category-link.active {
+        background: #007bff;
+        color: #fff;
+        border-color: #007bff;
+      }
+
+      .category-count {
+        background: #6c757d;
+        color: #fff;
+        border-radius: 12px;
+        padding: 2px 8px;
+        font-size: .8em;
+        font-weight: bold;
+        float: right;
+      }
+
+      .category-link.active .category-count {
+        background: rgba(255, 255, 255, .3);
+      }
+
+      .stats {
+        background: #e9ecef;
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 20px;
+        font-size: .9em;
+        line-height: 1.4;
+      }
+
+      /* ---- Responsive + sidebar state ---- */
+      .page {
+        margin-left: 0;
+      }
+
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .hamburger {
+        display: flex;
+      }
+
+      body.sidebar-open .sidebar {
+        transform: translateX(0);
+        box-shadow: 0 6px 30px rgba(0, 0, 0, .25);
+      }
+
+      body.sidebar-open .backdrop {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      body.sidebar-open .hamburger {
+        display: none;
+      }
+
+      @media (min-width: 992px) {
+
+        /* Sidebar is docked by default on desktop */
+        .sidebar {
+          transform: translateX(0);
+        }
+
+        .backdrop {
+          display: none;
+        }
+
+        /* Default (sidebar open): offset content area with padding so the inner .container can remain centered */
+        body:not(.sidebar-collapsed) .page {
+          padding-left: calc(var(--page-gutter) + var(--sidebar-width));
+        }
+
+        /* Collapsed: reclaim the space; keep hamburger visible so it can be reopened */
+        body.sidebar-collapsed .sidebar {
+          transform: translateX(-100%);
+        }
+
+        body.sidebar-collapsed .page {
+          padding-left: var(--page-gutter);
+        }
+
+        /* Button visibility */
+        .hamburger {
+          display: none;
+        }
+
+        body.sidebar-collapsed .hamburger {
+          display: flex;
+        }
+
+        /* Close button only when open */
+        .sidebar-close {
+          display: none;
+        }
+
+        body:not(.sidebar-collapsed) .sidebar-close {
+          display: inline-flex;
+        }
+      }
+
+      /* ===== VIEW MODES (match JS: grid | list-detailed | list-minimal) ===== */
+      /* Favicon base */
+      .site-favicon {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        display: inline-block;
+        object-fit: cover;
+      }
+
+      /* GRID: responsive tiles; button pinned to bottom; favicon top-right */
+      body[data-view="grid"] .site-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+      }
+
+      body[data-view="grid"] .site-item {
+        display: flex;
+        flex-direction: column;
+        min-height: 220px;
+        padding-right: 56px;
+        /* room for favicon */
+      }
+
+      body[data-view="grid"] .site-description {
+        flex: 1 1 auto;
+        margin-bottom: 12px;
+      }
+
+      body[data-view="grid"] .visit-btn {
+        margin-top: auto;
+        align-self: flex-start;
+      }
+
+      body[data-view="grid"] .favorite-btn {
+        margin-top: auto;
+        align-self: flex-start;
+      }
+
+      body[data-view="grid"] .site-favicon {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 24px;
+        height: 24px;
+      }
+
+      /* LIST (detailed): multi-line with description; favicon top-right */
+      body[data-view="list-detailed"] .site-list {
+        display: block;
+      }
+
+      body[data-view="list-detailed"] .site-item {
+        display: block;
+        padding-right: 56px;
+        /* room for favicon */
+      }
+
+      body[data-view="list-detailed"] .site-description {
+        display: block;
+      }
+
+      body[data-view="list-detailed"] .site-favicon {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 22px;
+        height: 22px;
+      }
+
+      /* LIST (minimal): single-line row with favicon on the left */
+      body[data-view="list-minimal"] .site-list {
+        display: block;
+      }
+
+      body[data-view="list-minimal"] .site-item {
+        display: grid;
+        grid-template-columns: 20px 1fr 1fr auto;
+        /* favicon | name | url | button */
+        gap: 12px;
+        align-items: center;
+        padding: 10px 14px;
+        padding-right: 14px;
+        /* cancel extra space from other modes */
+      }
+
+      body[data-view="list-minimal"] .site-item:hover {
+        box-shadow: none;
+      }
+
+      body[data-view="list-minimal"] .site-favicon {
+        position: static;
+        width: 20px;
+        height: 20px;
+        justify-self: start;
+      }
+
+      body[data-view="list-minimal"] .site-name {
+        margin: 0;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      body[data-view="list-minimal"] .site-url {
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #6c757d;
+      }
+
+      body[data-view="list-minimal"] .site-description {
+        display: none;
+      }
+
+      body[data-view="list-minimal"] .visit-btn {
+        padding: 6px 12px;
+        justify-self: end;
+        white-space: nowrap;
+      }
+
+      /* ---- THEME SYSTEM ---- */
+      body[data-theme="light"],
+      body.theme-light {
+        color-scheme: light;
+        background: #f5f5f5;
+        color: #212529;
+      }
+
+      body[data-theme="dark"],
+      body.theme-dark {
+        color-scheme: dark;
+        background: #0f1115;
+        color: #e6e6e6;
+      }
+
+      body[data-theme="dark"] .container,
+      body.theme-dark .container {
+        background: #161a22;
+        border: 1px solid #2a2f3a;
+        box-shadow: none;
+      }
+
+      body[data-theme="dark"] .site-header,
+      body.theme-dark .site-header {
+        background: linear-gradient(135deg, #2b3a67 0%, #4b2e6b 100%);
+        color: #e6e6e6;
+      }
+
+      body[data-theme="dark"] .sidebar,
+      body.theme-dark .sidebar {
+        background: #121722;
+        border-color: #2a2f3a;
+        color: #e6e6e6;
+      }
+
+      body[data-theme="dark"] .sidebar-header,
+      body.theme-dark .sidebar-header {
+        background: #121722;
+        border-color: #2a2f3a;
+      }
+
+      body[data-theme="dark"] .sidebar-settings,
+      body.theme-dark .sidebar-settings {
+        background: #121722;
+        border-top-color: #2a2f3a;
+      }
+
+      body[data-theme="dark"] .sidebar-close,
+      body[data-theme="dark"] .hamburger,
+      body[data-theme="dark"] .setting-btn,
+      body.theme-dark .sidebar-close,
+      body.theme-dark .hamburger,
+      body.theme-dark .setting-btn {
+        background: #1b2230;
+        border-color: #2a2f3a;
+        color: #e6e6e6;
+      }
+
+      body[data-theme="dark"] .category-title,
+      body.theme-dark .category-title {
+        color: #e6e9f3;
+        border-color: #2a2f3a;
+      }
+
+      body[data-theme="dark"] .site-item,
+      body.theme-dark .site-item {
+        background: #161a22;
+        border-color: #2a2f3a;
+      }
+
+      body[data-theme="dark"] .site-name,
+      body.theme-dark .site-name {
+        color: #e6e6e6;
+      }
+
+      body[data-theme="dark"] .site-url,
+      body.theme-dark .site-url {
+        color: #9aa4b2;
+      }
+
+      body[data-theme="dark"] .site-description,
+      body.theme-dark .site-description {
+        background: #111622;
+        color: #c9d2e1;
+        border-left-color: #4da3ff;
+      }
+
+      body[data-theme="dark"] .visit-btn,
+      body.theme-dark .visit-btn {
+        background: #2a7be0;
+        border-color: transparent;
+        /* keep border balance */
+      }
+
+      body[data-theme="dark"] .visit-btn:hover,
+      body.theme-dark .visit-btn:hover {
+        background: #276fcb;
+      }
+
+      body[data-theme="dark"] .category-link,
+      body.theme-dark .category-link {
+        background: #141a24;
+        border-color: #2a2f3a;
+        color: #cfd6e3;
+      }
+
+      body[data-theme="dark"] .category-link:hover,
+      body.theme-dark .category-link:hover {
+        background: #1b2230;
+        color: #cfd6e3;
+      }
+
+      body[data-theme="dark"] .category-link.active,
+      body.theme-dark .category-link.active {
+        background: #2a7be0;
+        border-color: #2a7be0;
+        color: #fff;
+      }
+
+      body[data-theme="dark"] .category-count,
+      body.theme-dark .category-count {
+        background: #2a2f3a;
+        color: #cfd6e3;
+      }
+
+      body[data-theme="dark"] .stats,
+      body.theme-dark .stats {
+        background: #141a24;
+        border-color: #2a2f3a;
+        color: #cfd6e3;
+      }
+
+      /* Dark theme form contrast */
+      body[data-theme="dark"] .search-section input,
+      body.theme-dark .search-section input {
+        background: #111622;
+        border-color: #2a2f3a;
+        color: #e6e6e6;
+      }
+
+      body[data-theme="dark"] .search-section input::placeholder,
+      body.theme-dark .search-section input::placeholder {
+        color: #8fa1b3;
+      }
+
+      body[data-theme="dark"] .search-section h3,
+      body[data-theme="dark"] .categories-section h3,
+      body.theme-dark .search-section h3,
+      body.theme-dark .categories-section h3 {
+        color: #e6e9f3;
+      }
+
+      /* Follow system when no explicit override is set */
+      @media (prefers-color-scheme: dark) {
+        body:not([data-theme]):not(.theme-light) {
+          background: #0f1115;
+          color: #e6e6e6;
+        }
+
+        body:not([data-theme]):not(.theme-light) .site-header {
+          background: linear-gradient(135deg, #2b3a67 0%, #4b2e6b 100%);
+          color: #e6e6e6;
+        }
+
+        body:not([data-theme]):not(.theme-light) .container {
+          background: #161a22;
+          border: 1px solid #2a2f3a;
+          box-shadow: none;
+        }
+
+        body:not([data-theme]):not(.theme-light) .sidebar {
+          background: #121722;
+          border-color: #2a2f3a;
+          color: #e6e6e6;
+        }
+
+        body:not([data-theme]):not(.theme-light) .sidebar-settings {
+          background: #121722;
+          border-top-color: #2a2f3a;
+        }
+
+        body:not([data-theme]):not(.theme-light) .search-section input {
+          background: #111622;
+          border-color: #2a2f3a;
+          color: #e6e6e6;
+        }
+
+        body:not([data-theme]):not(.theme-light) .search-section input::placeholder {
+          color: #8fa1b3;
+        }
+
+        body:not([data-theme]):not(.theme-light) .search-section h3,
+        body:not([data-theme]):not(.theme-light) .categories-section h3 {
+          color: #e6e9f3;
+        }
+      }
+
+      /* Actions row keeps buttons together on the same side */
+      .site-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        /* prevents space-between layouts from separating them */
+      }
+
+      /* ===== Favorites button (matches Visit button exactly) ===== */
+      .favorite-btn {
+        padding: 8px 16px;
+        /* same as .visit-btn */
+        border-radius: 6px;
+        /* same as .visit-btn */
+        font-size: .9em;
+        /* same as .visit-btn */
+        line-height: 1;
+        background: #ffffff;
+        color: #6c757d;
+        border: 1px solid #e9ecef;
+        /* visible outline so it looks like a button */
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        vertical-align: middle;
+        box-sizing: border-box;
+        /* unify sizing model with visit button */
+        height: var(--btn-h);
+        /* exact same height as visit button */
+      }
+
+      .favorite-btn:hover {
+        background: #f1f3f5;
+        border-color: #cfd3da;
+      }
+
+      .favorite-btn:focus-visible {
+        outline: 2px solid #80bdff;
+        outline-offset: 2px;
+      }
+
+      /* SVG star */
+      .favorite-btn .star {
+        width: 18px;
+        height: 18px;
+        display: inline-block;
+      }
+
+      .favorite-btn .star path {
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linejoin: round;
+      }
+
+      /* Active (favorited) */
+      .favorite-btn[data-active="true"] {
+        color: #f4c430;
+        background: #fff7d1;
+        border-color: #ffe08a;
+      }
+
+      .favorite-btn[data-active="true"]:hover {
+        background: #ffefad;
+      }
+
+      /* View-specific tweak (keeps parity in compact list) */
+      body[data-view="grid"] .favorite-btn {
+        margin-top: auto;
+        align-self: flex-start;
+      }
+
+      body[data-view="list-minimal"] .favorite-btn {
+        padding: 6px 12px;
+        height: 32px;
+      }
+
+      body[data-view="list-minimal"] .visit-btn {
+        padding: 6px 12px;
+        height: 32px;
+      }
+
+      /* Dark theme parity */
+      body[data-theme="dark"] .favorite-btn,
+      body.theme-dark .favorite-btn {
+        background: #141a24;
+        color: #cfd6e3;
+        border: 1px solid #2a2f3a;
+      }
+
+      body[data-theme="dark"] .favorite-btn:hover,
+      body.theme-dark .favorite-btn:hover {
+        background: #1b2230;
+      }
+
+      body[data-theme="dark"] .favorite-btn[data-active="true"],
+      body.theme-dark .favorite-btn[data-active="true"] {
+        color: #f4c430;
+        background: #3a2f10;
+        border-color: #4a3b17;
+      }
+
+      /* --- Safety override for sidebar transforms (prevents accidental regressions) --- */
+      body.sidebar-open .sidebar {
+        transform: translateX(0) !important;
+      }
+
+      body.sidebar-collapsed .sidebar {
+        transform: translateX(-100%) !important;
+      }
+
+      @media (min-width: 992px) {
+        body.sidebar-collapsed .hamburger {
+          display: flex !important;
+        }
+      }
+
+      /* --- Drag handle + drag feedback (Favorites only) --- */
+      #Favorites .site-item {
+        position: relative;
+        padding-left: 36px;
+      }
+
+      /* Handle block on the left edge */
+      #Favorites .drag-handle {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 22px;
+        height: 28px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: grab;
+        user-select: none;
+        -webkit-user-drag: auto;
+        /* allow dragging from the handle */
+        opacity: .85;
+        z-index: 2;
+      }
+
+      #Favorites .drag-handle:active {
+        cursor: grabbing;
+      }
+
+      /* 8-dot grip as inline SVG background */
+      #Favorites .drag-handle::before {
+        content: "";
+        display: block;
+        width: 12px;
+        height: 16px;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='16' viewBox='0 0 12 16' fill='%239aa4b2'><circle cx='2' cy='2' r='1.5'/><circle cx='6' cy='2' r='1.5'/><circle cx='10' cy='2' r='1.5'/><circle cx='2' cy='8' r='1.5'/><circle cx='6' cy='8' r='1.5'/><circle cx='10' cy='8' r='1.5'/><circle cx='2' cy='14' r='1.5'/><circle cx='6' cy='14' r='1.5'/><circle cx='10' cy='14' r='1.5'/></svg>");
+        background-repeat: no-repeat;
+        background-position: center;
+        opacity: .9;
+      }
+
+      /* Space the content so the handle doesn’t overlap text/buttons */
+      #Favorites .site-item .site-actions,
+      #Favorites .site-item .site-name,
+      #Favorites .site-item .site-url,
+      #Favorites .site-item .site-description {
+        margin-left: 28px;
+      }
+
+      /* Minimal view needs a little more left gutter */
+      body[data-view="list-minimal"] #Favorites .site-item {
+        padding-left: 36px;
+      }
+
+      /* Drag visual while moving */
+      #Favorites .site-item.dragging {
+        opacity: .5;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, .15);
+        transform: scale(0.995);
+      }
+
+      .drag-ghost {
+        z-index: 9999;
+      }
+
+      #Favorites .site-item.placeholder {
+        outline: 2px dashed #2a7be0;
+        /* outline does not affect layout width */
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        box-sizing: border-box;
+      }
+
+      #Favorites .site-item.drag-floating {
+        box-shadow: 0 8px 20px rgba(0, 0, 0, .25);
+        cursor: grabbing;
+        box-sizing: border-box;
+      }
+
+      /* Drop position marker */
+      #Favorites .drop-marker {
+        height: 0;
+        border-top: 3px solid #2a7be0;
+        /* matches dark visit-btn hue */
+        margin: 6px 0;
+        border-radius: 2px;
+      }
+
+      /* Dark theme tweaks for handle dots */
+      body[data-theme="dark"] #Favorites .drag-handle::before,
+      body.theme-dark #Favorites .drag-handle::before {
+        filter: brightness(1.2);
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Mobile overlay backdrop -->
+    <div id="backdrop" class="backdrop"></div>
+    <!-- Floating hamburger. Visible on mobile and when desktop sidebar is collapsed -->
+    <button id="hamburgerBtn" class="hamburger" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false" title="Open menu">☰</button>
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar" aria-label="Site navigation">
+      <div class="sidebar-header">
+        <!-- Collapse arrow (shown on desktop widths) -->
+        <button id="sidebarCloseBtn" class="sidebar-close" aria-label="Collapse sidebar" title="Collapse sidebar">←</button>
+      </div>
+      <nav class="sidebar-content" aria-label="Categories and search">
+        <section class="search-section">
+          <h3>Search Websites</h3>
+          <input id="searchInput" onkeyup="filterSites()" placeholder="Type to search websites..." />
+        </section>
+        <section class="categories-section">
+          <h3>Categories</h3>
+          <ul class="category-list">
+            {{CATEGORY_NAV}}
+          </ul>
+        </section>
+        <section class="stats" aria-label="Stats">
+          <strong>Total Websites:</strong> {{TOTAL_SITES}}<br>
+          <strong>Categories:</strong> {{TOTAL_CATEGORIES}}<br>
+          <strong>Last Updated:</strong> {{LAST_UPDATED}}
+        </section>
+      </nav>
+      <div class="sidebar-settings">
+        <div class="settings-row">
+          <button id="themeToggle" class="setting-btn" type="button" aria-label="Toggle theme">
+            <span class="icon" id="themeIcon">🌓</span>
+            <span class="label">Theme</span>
+          </button>
+
+          <button id="viewToggle" class="setting-btn" type="button" aria-label="Toggle view">
+            <span class="icon" id="viewIcon">≡</span>
+            <span class="label">View</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+    <!-- Everything that should shift together on desktop -->
+    <div class="page">
+      <header class="site-header">
+        <h1>Approved Websites</h1>
+        <p>For Incarcerated Students</p>
+      </header>
+      <main class="container">
+        {{CATEGORY_SECTIONS}}
+      </main>
+    </div>
+    <script>
+      // -----------------------------
+      // SEARCH FILTER
+      // -----------------------------
+      (function() {
+        const $ = (s, r = document) => r.querySelector(s);
+        const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+        const norm = (s) => (s || "").toString()
+          .normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+
+        function parseQuery(q) {
+          const tokens = [];
+          let phrase = norm(q);
+          const re = /"([^"]+)"|(\S+)/g;
+          let m;
+          while ((m = re.exec(q))) {
+            const t = norm(m[1] || m[2]);
+            if (t) tokens.push(t);
+          }
+          return {
+            phrase,
+            tokens
+          };
+        }
+
+        function ensureOrig(node) {
+          if (node && !node.dataset.origHtml) node.dataset.origHtml = node.innerHTML;
+        }
+
+        function restoreOrig(node) {
+          if (node && node.dataset.origHtml) node.innerHTML = node.dataset.origHtml;
+        }
+
+        function highlight(node, tokens) {
+          if (!node) return;
+          let html = node.dataset.origHtml || node.innerHTML;
+          tokens
+            .filter(Boolean)
+            .sort((a, b) => b.length - a.length)
+            .forEach((t) => {
+              const esc = t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+              html = html.replace(new RegExp(`(${esc})`, "gi"), "<mark>$1</mark>");
+            });
+          node.innerHTML = html;
+        }
+        // Build a fresh index from whatever is currently in the DOM
+        function buildIndex() {
+          return $$(".site-item").map((el) => {
+            const nameEl = el.querySelector(".site-name");
+            const urlEl = el.querySelector(".site-url");
+            const descEl = el.querySelector(".site-description");
+            ensureOrig(nameEl);
+            ensureOrig(urlEl);
+            ensureOrig(descEl);
+            const name = norm(nameEl?.textContent);
+            const url = norm(urlEl?.textContent);
+            const desc = norm(descEl?.textContent);
+            const cat = el.closest(".category-section");
+            const catId = cat?.id;
+            const list = el.parentElement; // <ul class="site-list">
+            return {
+              el,
+              list,
+              cat,
+              catId,
+              nameEl,
+              urlEl,
+              descEl,
+              name,
+              url,
+              desc
+            };
+          });
+        }
+
+        function score(it, tokens, phrase) {
+          if (!tokens.length) return 0;
+          for (const t of tokens) {
+            if (!(it.name.includes(t) || it.url.includes(t) || it.desc.includes(t))) return -1;
+          }
+          let s = 0;
+          for (const t of tokens) {
+            if (it.name.startsWith(t)) s += 12;
+            else if (it.name.includes(t)) s += 9;
+            if (it.url.startsWith(t)) s += 6;
+            else if (it.url.includes(t)) s += 4;
+            if (it.desc.includes(t)) s += 2;
+          }
+          if (phrase) {
+            if (it.name === phrase) s += 100;
+            else if (it.name.includes(phrase)) s += 40;
+            else if (it.url.includes(phrase)) s += 18;
+          }
+          return s;
+        }
+
+        function updateSidebarAndCategories() {
+          $$(".category-section").forEach((cat) => {
+            const id = cat.id;
+            const visibleCount = cat.querySelectorAll(".site-item:not(.hidden)").length;
+            cat.classList.toggle("hidden", visibleCount === 0);
+            const link = document.querySelector(`.category-list a[href="#${CSS.escape(id)}"]`);
+            if (link) {
+              const li = link.closest(".category-item");
+              const countEl = link.querySelector(".category-count");
+              if (countEl) countEl.textContent = String(visibleCount);
+              if (li) li.classList.toggle("hidden", visibleCount === 0);
+            }
+          });
+        }
+        window.filterSites = function filterSites() {
+          const INDEX = buildIndex(); // << rebuild every time
+          const q = $("#searchInput")?.value || "";
+          const {
+            phrase,
+            tokens
+          } = parseQuery(q);
+          // Reset visibility + highlights for *all* current items
+          INDEX.forEach(({
+            el,
+            nameEl,
+            urlEl,
+            descEl
+          }) => {
+            el.classList.remove("hidden");
+            el.style.removeProperty("display"); // robust reset
+            el.removeAttribute("data-score");
+            restoreOrig(nameEl);
+            restoreOrig(urlEl);
+            restoreOrig(descEl);
+          });
+          if (!tokens.length) {
+            updateSidebarAndCategories();
+            return;
+          }
+          const buckets = new Map();
+          INDEX.forEach((it) => {
+            const s = score(it, tokens, phrase);
+            if (s < 0) {
+              // Hide individual non-matching items (works even if other CSS flips display)
+              it.el.classList.add("hidden");
+              it.el.style.display = "none";
+              return;
+            }
+            it.el.dataset.score = String(s);
+            highlight(it.nameEl, tokens);
+            highlight(it.urlEl, tokens);
+            highlight(it.descEl, tokens);
+            if (!buckets.has(it.list)) buckets.set(it.list, []);
+            buckets.get(it.list).push(it);
+          });
+          // Reorder matches by score inside each list
+          for (const [list, arr] of buckets.entries()) {
+            arr.sort((a, b) => (parseInt(b.el.dataset.score) || 0) - (parseInt(a.el.dataset.score) || 0))
+              .forEach((it) => list.appendChild(it.el));
+          }
+          updateSidebarAndCategories();
+        };
+        document.addEventListener("DOMContentLoaded", () => {
+          const box = $("#searchInput");
+          if (!box) return;
+          let t;
+          box.addEventListener("input", () => {
+            clearTimeout(t);
+            t = setTimeout(() => window.filterSites(), 60);
+          });
+        });
+      })();
+      // -----------------------------
+      // SMOOTH SCROLL + ACTIVE LINK
+      // -----------------------------
+      function scrollToCategory(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+        document.querySelectorAll(".category-link").forEach(a => a.classList.remove("active"));
+        var active = document.querySelector('a[href="#' + id + '"]');
+        if (active) active.classList.add("active");
+      }
+      // -----------------------------
+      // SIDEBAR BEHAVIOR
+      // -----------------------------
+      (function() {
+        var body = document.body;
+        var mql = window.matchMedia("(min-width: 992px)");
+
+        function qs(id) {
+          return document.getElementById(id);
+        }
+
+        function openSidebar() {
+          if (mql.matches) {
+            body.classList.remove("sidebar-collapsed");
+          } else {
+            body.classList.add("sidebar-open");
+          }
+        }
+
+        function closeSidebar() {
+          if (mql.matches) {
+            body.classList.add("sidebar-collapsed");
+          } else {
+            body.classList.remove("sidebar-open");
+          }
+        }
+
+        function setup() {
+          var bd = qs("backdrop");
+          if (bd && bd.hasAttribute("hidden")) bd.removeAttribute("hidden");
+          if (mql.matches) {
+            body.classList.remove("sidebar-open");
+            body.classList.remove("sidebar-collapsed");
+          } else {
+            body.classList.remove("sidebar-collapsed");
+            body.classList.remove("sidebar-open");
+          }
+          var hb = qs("hamburgerBtn");
+          if (hb) {
+            hb.onclick = e => {
+              e.stopPropagation();
+              openSidebar();
+            };
+          }
+          var cb = qs("sidebarCloseBtn");
+          if (cb) {
+            cb.onclick = e => {
+              e.stopPropagation();
+              closeSidebar();
+            };
+          }
+          if (bd) {
+            bd.onclick = () => closeSidebar();
+          }
+        }
+        setup();
+        mql.addEventListener("change", setup);
+      })();
+      // -----------------------------
+      // ACTIVE CATEGORY ON SCROLL
+      // -----------------------------
+      window.addEventListener("scroll", function() {
+        var categories = document.querySelectorAll(".category-section");
+        var scrollPos = window.scrollY + 100;
+        categories.forEach(function(cat) {
+          var top = cat.offsetTop;
+          var bottom = top + cat.offsetHeight;
+          if (scrollPos >= top && scrollPos < bottom) {
+            var id = cat.id;
+            document.querySelectorAll(".category-link").forEach(a => a.classList.remove("active"));
+            var link = document.querySelector('a[href="#' + id + '"]');
+            if (link) link.classList.add("active");
+          }
+        });
+      });
+      // -----------------------------
+      // DARK MODE TOGGLE (SYSTEM → DARK → LIGHT → SYSTEM)
+      // -----------------------------
+      (function() {
+        const KEY = 'theme-pref'; // stores: system | dark | light
+        const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+        function getPref() {
+          return localStorage.getItem(KEY) || 'system';
+        }
+
+        function setPref(pref) {
+          localStorage.setItem(KEY, pref);
+        }
+
+        function apply(pref) {
+          document.body.dataset.theme = (pref === 'system') ? '' : pref;
+          if (pref === 'dark') {
+            document.body.classList.add('theme-dark');
+          } else if (pref === 'light') {
+            document.body.classList.remove('theme-dark');
+          } else {
+            if (media.matches) {
+              document.body.classList.add('theme-dark');
+            } else {
+              document.body.classList.remove('theme-dark');
+            }
+          }
+          updateButton(pref);
+        }
+
+        function updateButton(pref) {
+          const btn = document.getElementById('themeToggle');
+          if (!btn) return;
+          btn.textContent =
+            pref === 'dark' ? '🌙' :
+            pref === 'light' ? '☀️' :
+            '🌓';
+        }
+
+        function next(pref) {
+          return pref === 'system' ? 'dark' :
+            pref === 'dark' ? 'light' :
+            'system';
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+          const toggle = document.getElementById('themeToggle');
+          if (!toggle) return;
+          let pref = getPref();
+          apply(pref);
+          media.addEventListener('change', () => {
+            if (getPref() === 'system') apply('system');
+          });
+          toggle.addEventListener('click', () => {
+            pref = next(getPref());
+            setPref(pref);
+            apply(pref);
+          });
+        });
+      })();
+      // -----------------------------
+      // VIEW MODE TOGGLE (LIST / GRID)
+      // -----------------------------
+      (function() {
+        const viewBtn = document.getElementById('viewToggle');
+        const viewIcon = document.getElementById('viewIcon');
+        // Order stays the same
+        const viewOrder = ['grid', 'list-detailed', 'list-minimal'];
+        const savedView = localStorage.getItem('site-view');
+        // ✅ Default is now "list-detailed"
+        const startView = viewOrder.includes(savedView) ? savedView : 'list-detailed';
+        document.body.setAttribute('data-view', startView);
+
+        function refreshViewIcon() {
+          const v = document.body.getAttribute('data-view');
+          if (v === 'grid') viewIcon.textContent = '⬚';
+          else if (v === 'list-detailed') viewIcon.textContent = '≡';
+          else viewIcon.textContent = '≣'; // list-minimal
+        }
+        refreshViewIcon();
+        viewBtn?.addEventListener('click', () => {
+          const cur = document.body.getAttribute('data-view');
+          const idx = viewOrder.indexOf(cur);
+          const next = viewOrder[(idx + 1) % viewOrder.length];
+          document.body.setAttribute('data-view', next);
+          localStorage.setItem('site-view', next);
+          refreshViewIcon();
+        });
+      })();
+      // -----------------------------
+      // SITE FAVICON LOADER (no Google; single-pass w/ default)
+      // -----------------------------
+      (function() {
+        // Neutral SVG fallback (URL-encoded to be safe in all browsers)
+        const FALLBACK_SVG =
+          "data:image/svg+xml;utf8," +
+          encodeURIComponent(
+            "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'>" +
+            "<rect width='24' height='24' rx='4' ry='4' fill='#e9ecef'/>" +
+            "<circle cx='12' cy='12' r='6' fill='#adb5bd'/>" +
+            "</svg>"
+          );
+
+        function computeOriginFromItem(img) {
+          const li = img.closest('.site-item');
+          if (!li) return '';
+          // Prefer an actual anchor href inside .site-url
+          const a = li.querySelector('.site-url a[href]') || li.querySelector('a[href]');
+          let href = a?.href;
+          if (!href) {
+            const txt = li.querySelector('.site-url')?.textContent?.trim();
+            href = txt || '';
+          }
+          if (!href) return '';
+          try {
+            // Be forgiving if protocol is missing
+            const url = new URL(href.includes('://') ? href : ('https://' + href.replace(/^\/*/, '')));
+            return url.origin;
+          } catch {
+            return '';
+          }
+        }
+
+        function bindOne(img) {
+          // If this image already has a data: URL (from Python or favorites), leave it alone
+          if (img.src && img.src.startsWith('data:')) return;
+          // If this clone carried a previous "bound" flag, allow a refresh pass
+          if (img.dataset.favBound === '1' && img.dataset.forceRefresh !== '1') return;
+          // Mark as bound and clear the one-shot refresh flag
+          img.dataset.favBound = '1';
+          if (img.dataset.forceRefresh === '1') delete img.dataset.forceRefresh;
+          const origin = computeOriginFromItem(img);
+          if (!origin) {
+            img.src = FALLBACK_SVG;
+            return;
+          }
+          img.loading = 'lazy';
+          img.decoding = 'async';
+          img.referrerPolicy = 'no-referrer';
+          img.onerror = function() {
+            img.onerror = null; // prevent loops
+            img.src = FALLBACK_SVG;
+          };
+          // Try the site's own favicon first
+          img.src = origin + '/favicon.ico';
+        }
+
+        function hydrateFavicons(root) {
+          const scope = root || document;
+          scope.querySelectorAll('img.site-favicon').forEach((img) => {
+            bindOne(img);
+          });
+        }
+        // Expose so Favorites renderer can re-hydrate clones
+        window.hydrateFavicons = hydrateFavicons;
+        // Initial pass
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => hydrateFavicons(document), {
+            once: true
+          });
+        } else {
+          hydrateFavicons(document);
+        }
+      })();
+      // -----------------------------
+      // FAVORITE BUTTONS + REORDER (drag & drop within Favorites)
+      // -----------------------------
+      (function() {
+        const FAVORITES_ID = 'Favorites';
+        const STORAGE_KEY = 'approved-favorites-v1';
+        const $ = (s, r = document) => r.querySelector(s);
+        const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+        const main = () => document.querySelector('main.container') || document.body;
+        const readFavs = () => {
+          try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          } catch {
+            return [];
+          }
+        };
+        const writeFavs = (arr) => localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+        const key = (u) => (u || '').trim().toLowerCase();
+
+        function ensureDragHandle(li) {
+          if (li.querySelector('.drag-handle')) return;
+          const h = document.createElement('div');
+          h.className = 'drag-handle';
+          h.setAttribute('draggable', 'true');
+          h.title = 'Drag to reorder';
+          h.ariaLabel = 'Drag to reorder';
+          li.prepend(h);
+        }
+
+        function makeDropMarker() {
+          const m = document.createElement('div');
+          m.className = 'drop-marker';
+          return m;
+        }
+
+        function makeStarBtn(active) {
+          const btn = document.createElement('button');
+          btn.className = 'favorite-btn';
+          btn.type = 'button';
+          if (active) btn.dataset.active = 'true';
+          btn.ariaLabel = active ? 'Remove favorite' : 'Add favorite';
+          btn.title = btn.ariaLabel;
+          btn.innerHTML = `
+      <svg class="star" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3.25l2.9 5.88 6.49.94-4.7 4.58 1.11 6.47L12 18.77 6.2 21.12l1.11-6.47-4.7-4.58 6.49-.94L12 3.25z"/>
+      </svg>`;
+          return btn;
+        }
+        // Insert star button *immediately before* Visit button; fallback: at start
+        function placeStarButton(actions, btn) {
+          const visit = actions.querySelector('.visit-btn');
+          if (visit && visit.parentNode === actions) actions.insertBefore(btn, visit);
+          else actions.prepend(btn);
+        }
+
+        function injectFavButtons() {
+          const favs = new Set(readFavs().map(f => key(f.url)));
+          $$('.site-item').forEach(li => {
+            const actions = $('.site-actions', li);
+            if (!actions) return;
+            if ($('.favorite-btn', actions)) return; // already injected
+            const url = $('.site-url', li)?.textContent?.trim() || '';
+            const name = $('.site-name', li)?.textContent?.trim() || '';
+            const cat = li.closest('.category-section')?.id || '';
+            const btn = makeStarBtn(favs.has(key(url)));
+            btn.dataset.url = url;
+            btn.dataset.name = name;
+            btn.dataset.category = cat;
+            placeStarButton(actions, btn);
+          });
+        }
+
+        function ensureFavorites() {
+          let sec = document.getElementById(FAVORITES_ID);
+          if (!sec) {
+            sec = document.createElement('div');
+            sec.id = FAVORITES_ID;
+            sec.className = 'category-section';
+            sec.innerHTML = `<h2 class="category-title">Favorites</h2><ul class="site-list"></ul>`;
+            main().insertBefore(sec, main().firstElementChild || null);
+          }
+          if (!$('.site-list', sec)) {
+            const ul = document.createElement('ul');
+            ul.className = 'site-list';
+            sec.appendChild(ul);
+          }
+          return sec;
+        }
+
+        function removeFavsIfEmpty() {
+          const sec = document.getElementById(FAVORITES_ID);
+          if (!sec) return;
+          if ($$('.site-item', sec).length === 0) sec.remove();
+        }
+
+        function renderFavorites() {
+          const favs = readFavs();
+          if (!favs.length) {
+            const sec = document.getElementById(FAVORITES_ID);
+            if (sec) {
+              const ul = $('.site-list', sec);
+              if (ul) ul.innerHTML = '';
+            }
+            removeFavsIfEmpty();
+            rebuildSidebar();
+            return;
+          }
+          const sec = ensureFavorites();
+          const ul = $('.site-list', sec);
+          ul.innerHTML = '';
+          // Build originals map from NON-favorites sections only
+          const originals = new Map();
+          $$('.category-section:not(#' + CSS.escape(FAVORITES_ID) + ') .site-item').forEach(li => {
+            const url = $('.site-url', li)?.textContent?.trim();
+            if (url) originals.set(key(url), li);
+          });
+          // Render in saved order
+          favs.forEach(f => {
+            const orig = originals.get(key(f.url));
+            if (!orig) return;
+            const clone = orig.cloneNode(true);
+            clone.dataset.url = f.url; // crucial for DnD + persistence
+            ensureDragHandle(clone);
+            // ensure working star on clone
+            let btn = $('.favorite-btn', clone);
+            if (!btn) {
+              btn = makeStarBtn(true);
+              const actions = $('.site-actions', clone);
+              if (actions) placeStarButton(actions, btn);
+            } else {
+              btn.dataset.active = 'true';
+            }
+            btn.dataset.url = f.url;
+            btn.dataset.name = $('.site-name', clone)?.textContent?.trim() || f.name || '';
+            btn.dataset.category = FAVORITES_ID;
+            // Favicon handling for favorites:
+            // 1) If we have a stored faviconSrc (which may be a data: URL), prefer that.
+            // 2) Otherwise, keep whatever src came from the original card.
+            const favImg = clone.querySelector('img.site-favicon');
+            if (favImg) {
+              if (f.faviconSrc) {
+                favImg.src = f.faviconSrc;
+              }
+              // Do NOT clear src or set forceRefresh here.
+              // hydrateFavicons will skip data: URLs automatically.
+            }
+            ul.appendChild(clone);
+          });
+          // Re-bind favicons inside Favorites only (for any that still need HTTP lookup)
+          if (window.hydrateFavicons) window.hydrateFavicons(sec);
+          // Enable drag & drop reorder (bind once per UL)
+          enableFavoritesReorder(ul);
+          rebuildSidebar();
+        }
+
+        function updateAllButtons() {
+          const favs = new Set(readFavs().map(f => key(f.url)));
+          $$('.favorite-btn').forEach(btn => {
+            const active = favs.has(key(btn.dataset.url));
+            if (active) btn.dataset.active = 'true';
+            else btn.removeAttribute('data-active');
+            btn.ariaLabel = active ? 'Remove favorite' : 'Add favorite';
+            btn.title = btn.ariaLabel;
+          });
+        }
+
+        function toggleFavorite(url) {
+          const list = readFavs();
+          const k = key(url);
+          const i = list.findIndex(x => key(x.url) === k);
+          if (i >= 0) {
+            // Remove from favorites
+            list.splice(i, 1);
+          } else {
+            // Add to favorites
+            // Find a matching site-item (can be original or favorites clone)
+            const li = $$('.site-item').find(x => (($('.site-url', x)?.textContent) || '').trim().toLowerCase() === k);
+            const name = li ? $('.site-name', li)?.textContent?.trim() : url;
+            const category = li?.closest('.category-section')?.id || '';
+            // Capture the favicon src at the moment of favoriting, so we keep data: URLs
+            let faviconSrc = '';
+            if (li) {
+              const img = li.querySelector('img.site-favicon');
+              if (img && img.src) {
+                faviconSrc = img.src;
+              }
+            }
+            list.push({
+              url,
+              name,
+              category,
+              faviconSrc // NEW: persist favicon (data: or HTTP URL)
+            });
+          }
+          writeFavs(list);
+          updateAllButtons();
+          renderFavorites(); // rebuild favorites section w/ correct order + icons
+        }
+        // Delegated click so clone stars work too
+        document.addEventListener('click', (e) => {
+          const btn = e.target.closest('.favorite-btn');
+          if (!btn) return;
+          e.preventDefault();
+          toggleFavorite(btn.dataset.url);
+        });
+
+        function rebuildSidebar() {
+          const sidebarUL = document.querySelector('.category-list');
+          if (!sidebarUL) return;
+          const activeId = $('.category-link.active')?.getAttribute('href')?.slice(1);
+          const frag = document.createDocumentFragment();
+          $$('.category-section', main()).forEach(sec => {
+            const id = sec.id || '';
+            if (!id) return;
+            const name = $('.category-title', sec)?.textContent?.trim() || id;
+            const count = $$('.site-item', sec).length;
+            const li = document.createElement('li');
+            li.className = 'category-item';
+            li.innerHTML = `
+        <a href="#${id}" class="category-link">
+          <span class="category-name">${name}</span>
+          <span class="category-count">${count}</span>
+        </a>`;
+            frag.appendChild(li);
+          });
+          sidebarUL.innerHTML = '';
+          sidebarUL.appendChild(frag);
+          const container = document.querySelector('.categories-section');
+          if (container && !container.dataset.navDelegated) {
+            container.dataset.navDelegated = 'true';
+            container.addEventListener('click', (ev) => {
+              const a = ev.target.closest('a.category-link');
+              if (!a) return;
+              ev.preventDefault();
+              const id = a.getAttribute('href').slice(1);
+              scrollToCategory(id);
+            });
+          }
+          if (activeId) {
+            const link = document.querySelector(`.category-link[href="#${activeId}"]`);
+            link?.classList.add('active');
+          }
+        }
+        // --- Drag & Drop reorder inside Favorites ---
+        function enableFavoritesReorder(ul) {
+          if (!ul || ul.dataset.dndBound === '1') return;
+          ul.dataset.dndBound = '1';
+          $$('.site-item', ul).forEach(li => {
+            li.removeAttribute('draggable');
+            const h = li.querySelector('.drag-handle');
+            if (h) h.removeAttribute('draggable');
+          });
+          let draggingEl = null;
+          let placeholder = null;
+          let startY = 0,
+            startX = 0;
+          let offsetY = 0,
+            offsetX = 0;
+          let startRect = null;
+          let cs = null;
+          let rafId = 0;
+          let pendingMove = null;
+          // Grid stability state
+          let lastTargetEl = null;
+          let lastPlace = null; // 'before' | 'after'
+          let currentIndex = -1;
+          const MIN_MOVE_INTERVAL_MS = 16; // ~60fps throttle for DOM reinsertions
+          let lastMoveAt = 0;
+
+          function onPointerDown(e) {
+            const handle = e.target.closest('.drag-handle');
+            const item = handle && handle.closest('.site-item');
+            if (!item || !ul.contains(item)) return;
+            if (e.target.closest('.visit-btn, .favorite-btn, a')) return;
+            e.preventDefault();
+            draggingEl = item;
+            startRect = draggingEl.getBoundingClientRect();
+            cs = getComputedStyle(draggingEl);
+            // account for margins so fixed box matches visual card
+            const mL = parseFloat(cs.marginLeft) || 0;
+            const mR = parseFloat(cs.marginRight) || 0;
+            const mT = parseFloat(cs.marginTop) || 0;
+            startY = e.clientY;
+            startX = e.clientX;
+            offsetY = 0;
+            offsetX = 0;
+            // Placeholder only sets height. Width comes from layout (grid or list).
+            placeholder = document.createElement('li');
+            placeholder.className = 'site-item placeholder';
+            placeholder.style.height = startRect.height + 'px';
+            ul.insertBefore(placeholder, draggingEl);
+            // Track current index of placeholder
+            currentIndex = Array.prototype.indexOf.call(ul.children, placeholder);
+            lastMoveAt = performance.now();
+            // Float the real element
+            draggingEl.classList.add('drag-floating');
+            draggingEl.style.position = 'fixed';
+            draggingEl.style.left = (startRect.left + mL) + 'px';
+            draggingEl.style.top = (startRect.top + mT) + 'px';
+            draggingEl.style.width = (startRect.width - mL - mR) + 'px';
+            draggingEl.style.height = startRect.height + 'px';
+            draggingEl.style.zIndex = 9999;
+            draggingEl.style.pointerEvents = 'none';
+            draggingEl.style.transform = 'translate3d(0,0,0)';
+            // capture moves
+            window.addEventListener('pointermove', onPointerMove, {
+              passive: false
+            });
+            window.addEventListener('pointerup', onPointerUp, {
+              once: true
+            });
+            // reset grid state
+            lastTargetEl = null;
+            lastPlace = null;
+          }
+
+          function onPointerMove(e) {
+            if (!draggingEl) return;
+            e.preventDefault();
+            pendingMove = {
+              x: e.clientX,
+              y: e.clientY
+            };
+            if (!rafId) rafId = requestAnimationFrame(applyMove);
+          }
+
+          function applyMove() {
+            rafId = 0;
+            if (!pendingMove || !draggingEl) return;
+            const {
+              x,
+              y
+            } = pendingMove;
+            pendingMove = null;
+            offsetY = y - startY;
+            offsetX = x - startX;
+            draggingEl.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+            const view = document.body.dataset.view || '';
+            if (view === 'grid') {
+              const now = performance.now();
+              const next = findGridTargetByHitTest(ul, x, y, draggingEl, {
+                tolerance: 12
+              });
+              if (!next.el) {
+                // move to end only if index changes
+                const endIndex = ul.children.length - 1;
+                if (currentIndex !== endIndex && now - lastMoveAt >= MIN_MOVE_INTERVAL_MS) {
+                  ul.appendChild(placeholder);
+                  currentIndex = endIndex;
+                  lastMoveAt = now;
+                }
+              } else {
+                // compute target index relative to element
+                const elIndex = Array.prototype.indexOf.call(ul.children, next.el);
+                const targetIndex = next.place === 'before' ? elIndex : elIndex + 1;
+                if (targetIndex !== currentIndex && now - lastMoveAt >= MIN_MOVE_INTERVAL_MS) {
+                  const refNode = ul.children[targetIndex] || null;
+                  if (refNode !== placeholder) ul.insertBefore(placeholder, refNode);
+                  currentIndex = targetIndex;
+                  lastMoveAt = now;
+                }
+              }
+              lastTargetEl = next.el;
+              lastPlace = next.place;
+            } else {
+              // list-detailed / list-minimal
+              const after = getAfterByY(ul, y, draggingEl);
+              const targetIndex = after ?
+                Array.prototype.indexOf.call(ul.children, after) :
+                ul.children.length;
+              if (targetIndex !== currentIndex) {
+                const refNode = ul.children[targetIndex] || null;
+                if (refNode !== placeholder) ul.insertBefore(placeholder, refNode);
+                currentIndex = targetIndex;
+              }
+            }
+          }
+
+          function onPointerUp() {
+            if (!draggingEl) return;
+            cancelAnimationFrame(rafId);
+            rafId = 0;
+            pendingMove = null;
+            ul.insertBefore(draggingEl, placeholder);
+            draggingEl.classList.remove('drag-floating');
+            draggingEl.style.position = '';
+            draggingEl.style.left = '';
+            draggingEl.style.top = '';
+            draggingEl.style.width = '';
+            draggingEl.style.height = '';
+            draggingEl.style.zIndex = '';
+            draggingEl.style.pointerEvents = '';
+            draggingEl.style.transform = '';
+            if (placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
+            placeholder = null;
+            const orderUrls = $$('.site-item', ul).map(li => li.dataset.url).filter(Boolean);
+            const current = readFavs();
+            const lookup = new Map(current.map(f => [key(f.url), f]));
+            const newOrder = orderUrls.map(u => lookup.get(key(u))).filter(Boolean);
+            // Keep any entries not currently rendered, just in case
+            current.forEach(f => {
+              if (!newOrder.find(x => key(x.url) === key(f.url))) newOrder.push(f);
+            });
+            writeFavs(newOrder);
+            draggingEl = null;
+            window.removeEventListener('pointermove', onPointerMove);
+          }
+          // Helpers
+          function getAfterByY(container, y, ignoreEl) {
+            const els = Array.from(container.querySelectorAll('.site-item:not(.placeholder)'))
+              .filter(el => el !== ignoreEl);
+            return els.reduce((closest, child) => {
+              const box = child.getBoundingClientRect();
+              const offset = y - (box.top + box.height / 2);
+              return (offset < 0 && offset > closest.offset) ? {
+                  offset,
+                  element: child
+                } :
+                closest;
+            }, {
+              offset: Number.NEGATIVE_INFINITY,
+              element: null
+            }).element;
+          }
+          // Robust grid targeting using elementFromPoint first, then fallback
+          function findGridTargetByHitTest(container, x, y, ignoreEl, opts = {}) {
+            const TOL = opts.tolerance || 12; // px to cross past center before flipping
+            // Prefer direct hit
+            let hit = document.elementFromPoint(x, y);
+            let el = hit && hit.closest && hit.closest('.site-item');
+            if (el && el !== ignoreEl && el.parentNode === container) {
+              const r = el.getBoundingClientRect();
+              const cx = r.left + r.width / 2;
+              const cy = r.top + r.height / 2;
+              let place;
+              if (Math.abs(y - cy) < r.height / 3) {
+                place = (x < cx - TOL) ? 'before' : (x > cx + TOL) ? 'after' : null;
+              } else {
+                place = (y < cy - TOL) ? 'before' : (y > cy + TOL) ? 'after' : null;
+              }
+              if (!place) place = lastPlace || 'after';
+              return {
+                el,
+                place
+              };
+            }
+            // Fallback: nearest center
+            const els = Array.from(container.querySelectorAll('.site-item:not(.placeholder)'))
+              .filter(e => e !== ignoreEl);
+            if (!els.length) return {
+              el: null,
+              place: 'end'
+            };
+            let best = null,
+              bestDist = Infinity;
+            for (const e of els) {
+              const r = e.getBoundingClientRect();
+              const cx = r.left + r.width / 2;
+              const cy = r.top + r.height / 2;
+              const dx = cx - x,
+                dy = cy - y,
+                d2 = dx * dx + dy * dy;
+              if (d2 < bestDist) {
+                bestDist = d2;
+                best = {
+                  el: e,
+                  r,
+                  cx,
+                  cy
+                };
+              }
+            }
+            if (!best) return {
+              el: null,
+              place: 'end'
+            };
+            const place = (Math.abs(y - best.cy) < best.r.height / 3) ?
+              (x < best.cx - TOL ? 'before' : x > best.cx + TOL ? 'after' : (lastPlace || 'after')) :
+              (y < best.cy - TOL ? 'before' : y > best.cy + TOL ? 'after' : (lastPlace || 'after'));
+            return {
+              el: best.el,
+              place
+            };
+          }
+          ul.addEventListener('pointerdown', onPointerDown);
+        }
+        // Boot
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', init, {
+            once: true
+          });
+        } else {
+          init();
+        }
+
+        function init() {
+          injectFavButtons();
+          renderFavorites();
+          updateAllButtons();
+          rebuildSidebar();
+        }
+      })();
+    </script>
+  </body>
+
+</html>
