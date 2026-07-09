@@ -932,5 +932,89 @@
     "meta_description": "",
     "status": "ok",
     "timestamp": "2025-12-11T13:48:19.725405"
+  },
+  "https://www.allstate.com/": {
+    "description": "Get an online insurance quote for quality coverage in the blink of an eye. Allstate offers insurance for your car, home, rental, motorcycle and more.",
+    "title": "Allstate Insurance Company | You're In Good Hands.",
+    "meta_description": "Get an online insurance quote for quality coverage in the blink of an eye. Allstate offers insurance for your car, home, rental, motorcycle and more.",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:22.812046"
+  },
+  "https://buildyourstax.com/": {
+    "description": "The investment game that lets you grow your wealth over 20 years. How high will your stax grow?",
+    "title": "Build Your Stax",
+    "meta_description": "The investment game that lets you grow your wealth over 20 years. How high will your stax grow?",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:24.193446"
+  },
+  "https://thebummergame.com": {
+    "description": "How long can insurance protect you on the Wheel of Bummers?",
+    "title": "Bummer",
+    "meta_description": "How long can insurance protect you on the Wheel of Bummers?",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:25.739443"
+  },
+  "https://creditclash.com/": {
+    "description": "Battle your way to the perfect credit score.",
+    "title": "Credit Clash",
+    "meta_description": "Battle your way to the perfect credit score.",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:28.757467"
+  },
+  "https://ctclink.us/": {
+    "description": "CTC Link – Educational resource (ctclink.us)",
+    "title": "CTC Link",
+    "meta_description": "",
+    "status": "error",
+    "timestamp": "2026-07-09T09:32:31.094749"
+  },
+  "https://playinfluencd.com/": {
+    "description": "Being an influencer isn't just fancy meals and glamour shots.",
+    "title": "Influenc'd",
+    "meta_description": "Being an influencer isn't just fancy meals and glamour shots.",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:32.805368"
+  },
+  "https://www.linkedin.com/": {
+    "description": "1 billion members | Manage your professional identity. Build and engage with your professional network. Access knowledge, insights and opportunities.",
+    "title": "LinkedIn: Log In or Sign Up",
+    "meta_description": "1 billion members | Manage your professional identity. Build and engage with your professional network. Access knowledge, insights and opportunities.",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:35.695191"
+  },
+  "https://www.liveabout.com/": {
+    "description": "Diane Ackerman famously said, \"Play is our brain's favorite way of learning.\" Fuel your mind and your body with these resources for artists and athletes, musicians and hobbyists, dabblers and dreamers.",
+    "title": "Fresh Entertainment, Hobbies, Sports and Humor",
+    "meta_description": "Diane Ackerman famously said, \"Play is our brain's favorite way of learning.\" Fuel your mind and your body with these resources for artists and athletes, musicians and hobbyists, dabblers and dreamers.",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:38.862250"
+  },
+  "https://liveabout.com/": {
+    "description": "Diane Ackerman famously said, \"Play is our brain's favorite way of learning.\" Fuel your mind and your body with these resources for artists and athletes, musicians and hobbyists, dabblers and dreamers.",
+    "title": "Fresh Entertainment, Hobbies, Sports and Humor",
+    "meta_description": "Diane Ackerman famously said, \"Play is our brain's favorite way of learning.\" Fuel your mind and your body with these resources for artists and athletes, musicians and hobbyists, dabblers and dreamers.",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:40.754022"
+  },
+  "https://playmoneymagic.com/": {
+    "description": "Help Enzo manage his budget, reach his savings goal, and make it to Vegas.",
+    "title": "Money Magic",
+    "meta_description": "Help Enzo manage his budget, reach his savings goal, and make it to Vegas.",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:42.314545"
+  },
+  "https://www.myopenmath.com/": {
+    "description": "Free and Open Instructors Are you a student looking to study mathematics on your own, and want to do exercises with immediate feedback as you work through a free and open textbook? Then read more about our self study courses. Are you an instructor who wants to adopt an open textbook, who feels online interactive homework is valuable, but doesn't want their students to have to pay an additional fee? Then read more about using MyOpenMath in the classroom. If you already have an account, you can log on using the box to the right. If you are a new student to the system, register as a new student If you are an instructor, you can request an instructor account",
+    "title": "MyOpenMath",
+    "meta_description": "",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:44.340342"
+  },
+  "https://riseup.kaleidolearning.com": {
+    "description": "NRF Foundation - RISE UP Platform – Educational resource (riseup.kaleidolearning.com)",
+    "title": "RISE Up",
+    "meta_description": "",
+    "status": "ok",
+    "timestamp": "2026-07-09T09:32:45.729248"
   }
 }
