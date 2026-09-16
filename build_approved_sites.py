@@ -34,6 +34,10 @@ DESCRIPTIONS_FILE = "data/site_descriptions.json"
 URL_OVERRIDES_FILE = "data/url_overrides.json"
 URL_SUGGESTIONS_FILE = "data/url_overrides.suggested.json"
 
+# --check-links writes a timestamped report here on every run, in both formats,
+# so there is always something to send on and a history to compare against.
+LINK_REPORT_DIR = "link_reports"
+
 # Columns the CSV must provide. DOC exports name the URL column "Website";
 # "Website_Url" is accepted too, for exports that were converted by hand
 # before the builder understood the DOC default.
@@ -830,6 +834,10 @@ def build_sections_html(categorized: dict[str, list], favicons: FaviconFetcher) 
 # ---------------------------------------------------------------------------
 CHECK_WORKERS = 8
 CHECK_TIMEOUT = 12
+# The serial re-check is deliberately more patient than the concurrent pass:
+# a slow site starved of bandwidth by eight parallel requests is not a broken
+# one, and reporting it as dead sends someone chasing a site that works.
+CHECK_TIMEOUT_RETRY = 30
 # Let rate limits from the concurrent pass expire before the serial re-check.
 CHECK_COOLDOWN = 8
 CHECK_RETRY_SPACING = 1.5
@@ -892,7 +900,7 @@ def swap_www(url: str) -> str:
     return urlunparse(p._replace(netloc=alt))
 
 
-def probe(url: str) -> dict:
+def probe(url: str, timeout: int = CHECK_TIMEOUT) -> dict:
     """
     One request. Reports transport failure, status, where it landed, and
     whether the page looks like a parking or expiry placeholder.
@@ -908,7 +916,7 @@ def probe(url: str) -> dict:
     }
     try:
         resp = requests.get(
-            url, headers=headers, timeout=CHECK_TIMEOUT, allow_redirects=True
+            url, headers=headers, timeout=timeout, allow_redirects=True
         )
     except requests.RequestException as e:
         return {"error": type(e).__name__, "status": None, "final": None, "parked": False}
@@ -930,7 +938,7 @@ def _alive(p: dict) -> bool:
     return p["error"] is None and p["status"] is not None and p["status"] < 400 and not p["parked"]
 
 
-def check_site(name: str, url: str) -> dict:
+def check_site(name: str, url: str, timeout: int = CHECK_TIMEOUT) -> dict:
     """
     Classify one site, trying the listed URL first and then the obvious
     variants so a failure can be reported as a specific, fixable cause
@@ -944,7 +952,7 @@ def check_site(name: str, url: str) -> dict:
         result.update(klass="dead_dns", detail="no DNS record for host or its www/bare twin")
         return result
 
-    primary = probe(url)
+    primary = probe(url, timeout)
 
     if _alive(primary):
         final_host = urlparse(primary["final"]).netloc.lower()
@@ -962,12 +970,15 @@ def check_site(name: str, url: str) -> dict:
         result.update(klass="parked", detail="placeholder page (expired or parked domain)")
         return result
 
-    # A 401/403/429 means the host answered, so the listed URL is not the
-    # problem -- something refused this client. Stop here rather than trying
-    # variants: if a variant happens to answer 200, concluding "needs www"
-    # would be wrong and would send someone chasing a link that works fine in
-    # a browser. pewresearch.org does exactly this, serving 200 to curl and
-    # 403 to python-requests.
+    # Any HTTP response means the listed URL reached a server, so the URL
+    # itself is not malformed. Only a transport failure (no DNS, refused
+    # connection, timeout) or a genuine 404 justifies trying www/http variants
+    # and concluding the link is written wrong.
+    #
+    # Skipping this check produced three separate false positives: a 403 from
+    # pewresearch.org and a transient Cloudflare 520 from census.gov were both
+    # "explained" as a missing www, because a variant happened to answer 200.
+    # Both sites work fine as listed.
     if primary["status"] in BLOCKED_STATUSES:
         result.update(
             klass="blocked",
@@ -975,7 +986,21 @@ def check_site(name: str, url: str) -> dict:
         )
         return result
 
-    # The listed URL failed. Try the variants that explain the common causes.
+    if primary["status"] and primary["status"] >= 500:
+        result.update(
+            klass="server_error",
+            detail=f"HTTP {primary['status']} — host answered with a server error",
+        )
+        return result
+
+    if primary["status"] and primary["status"] not in (404, 410):
+        result.update(
+            klass="client_error",
+            detail=f"HTTP {primary['status']}",
+        )
+        return result
+
+    # No response at all, or a 404. Now a variant genuinely may explain it.
     www_swapped = swap_www(url)
     https_to_http = urlunparse(p._replace(scheme="http")) if p.scheme == "https" else None
     http_and_swap = urlunparse(urlparse(www_swapped)._replace(scheme="http")) if p.scheme == "https" else None
@@ -990,7 +1015,7 @@ def check_site(name: str, url: str) -> dict:
     for klass, candidate in candidates:
         if not candidate:
             continue
-        alt = probe(candidate)
+        alt = probe(candidate, timeout)
         if _alive(alt):
             result.update(
                 klass=klass,
@@ -1035,13 +1060,13 @@ def run_link_check(sites: list) -> list[dict]:
         # rate-limiting, and simply confirms the first wrong answer -- which is
         # how a healthy site (pewresearch.org) was reported as needing www.
         print(
-            f"Re-checking {len(suspect)} problem link(s) one at a time "
-            f"after a {CHECK_COOLDOWN}s cooldown...\n"
+            f"Re-checking {len(suspect)} problem link(s) one at a time, "
+            f"{CHECK_TIMEOUT_RETRY}s timeout, after a {CHECK_COOLDOWN}s cooldown...\n"
         )
         time.sleep(CHECK_COOLDOWN)
         by_url = {}
         for r in suspect:
-            by_url[r["url"]] = check_site(r["name"], r["url"])
+            by_url[r["url"]] = check_site(r["name"], r["url"], CHECK_TIMEOUT_RETRY)
             time.sleep(CHECK_RETRY_SPACING)
         results = [by_url.get(r["url"], r) for r in results]
 
@@ -1413,8 +1438,14 @@ def main(argv=None):
     parser.add_argument(
         "--report",
         metavar="PATH",
-        help="With --check-links, also write the findings to a file. Format follows "
-             "the extension: .csv for a spreadsheet, anything else plain text.",
+        help=f"With --check-links, write the findings to this exact file instead of "
+             f"the timestamped pair in {LINK_REPORT_DIR}/. Format follows the "
+             f"extension: .csv for a spreadsheet, anything else plain text.",
+    )
+    parser.add_argument(
+        "--no-report",
+        action="store_true",
+        help=f"With --check-links, don't write report files to {LINK_REPORT_DIR}/.",
     )
     parser.add_argument(
         "--all-categories",
@@ -1432,8 +1463,10 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
-    if args.report and not args.check_links:
-        parser.error("--report only applies to --check-links.")
+    if (args.report or args.no_report) and not args.check_links:
+        parser.error("--report and --no-report only apply to --check-links.")
+    if args.report and args.no_report:
+        parser.error("--report and --no-report contradict each other.")
 
     template_path = Path(args.template)
     if not template_path.exists():
@@ -1540,6 +1573,13 @@ def main(argv=None):
             else:
                 write_report_txt(results, args.report, str(csv_path))
                 print(f"\nWrote text report to {args.report}")
+        elif not args.no_report:
+            stamp = f"{datetime.now():%Y%m%d-%H%M}"
+            base = Path(LINK_REPORT_DIR) / f"link-review-{stamp}"
+            write_report_csv(results, str(base.with_suffix(".csv")))
+            write_report_txt(results, str(base.with_suffix(".txt")), str(csv_path))
+            print(f"\nWrote report to {base}.csv")
+            print(f"           and {base}.txt")
 
         written = write_link_suggestions(results, URL_SUGGESTIONS_FILE)
         broken = sum(1 for r in results if r["klass"] in CHECK_BROKEN)

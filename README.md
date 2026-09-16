@@ -118,7 +118,8 @@ filter entirely.
 | `--no-embed-favicons` | Don't fetch or embed favicons |
 | `--all-categories` | Build every row, not just `IncarEducation` ones |
 | `--check-links` | Check every link and report problems, then exit without building |
-| `--report PATH` | With `--check-links`, also write the findings to a file (`.csv` or text) |
+| `--report PATH` | With `--check-links`, write findings to this exact file instead of the default pair |
+| `--no-report` | With `--check-links`, skip writing report files |
 
 ### Which one to use
 
@@ -253,17 +254,29 @@ them by hand, not because anything is wrong.
 
 ### Sharing the results
 
-To send the findings to IT or to a facility for testing, write them to a file:
+**Every `--check-links` run writes a report automatically** — no flag needed —
+into `link_reports/`, in both formats, timestamped:
+
+```
+link_reports/link-review-20260916-0947.csv
+link_reports/link-review-20260916-0947.txt
+```
+
+So there is always something ready to attach to an email or a ticket, and the
+timestamps build a history — useful for showing how long something has been
+broken.
+
+To write somewhere specific instead, name the file; the format follows the
+extension. `--no-report` skips writing entirely.
 
 ```bash
 python build_approved_sites.py --check-links --report link-review.csv
-python build_approved_sites.py --check-links --report link-review.txt
+python build_approved_sites.py --check-links --no-report
 ```
 
-The format follows the extension — `.csv` for a spreadsheet, anything else
-plain text. Both carry the same findings; the spreadsheet adds one row per
-site with **Owner** and **Recommended action** columns, so it can be sorted
-and assigned:
+Both formats carry the same findings; the spreadsheet adds one row per site
+with **Owner** and **Recommended action** columns, so it can be sorted and
+assigned:
 
 | Site | URL on page | Status | Finding | Suggested URL | Owner | Recommended action |
 |---|---|---|---|---|---|---|
@@ -271,8 +284,9 @@ and assigned:
 | Worksource Washington | `www.worksourcewa.com` | REDIRECTS OFF-HOST | lands on `worksource.my.site.com` | `worksource.my.site.com/worksourcewa/` | Facility testing | Test from inside; if blocked, request the destination host |
 
 The CSV is written with a BOM so Excel opens it as UTF-8 without mangling
-accents. Note that `*.csv` is gitignored, so a report written into the repo
-folder won't be committed by accident.
+accents. `link_reports/` is gitignored — the reports are generated output to
+send on, not repo content. Remove that line from `.gitignore` if you would
+rather keep the history in version control.
 
 Unambiguous fixes are also written to `data/url_overrides.suggested.json` as a
 ready-to-merge fragment. Nothing is applied automatically — a redirect can lead
@@ -321,6 +335,7 @@ fetching entirely.
 ├── template.html               # Page template + all CSS/JS
 ├── Approved_Websites.html      # Generated output
 ├── site_extracts/              # CSV exports (gitignored)
+├── link_reports/               # --check-links output (gitignored)
 └── data/
     ├── site_descriptions.json  # Cached descriptions, keyed by URL
     ├── category_changes.json   # Manual category overrides
