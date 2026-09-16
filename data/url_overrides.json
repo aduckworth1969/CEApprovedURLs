@@ -1,0 +1,27 @@
+{
+  "_comment": "Corrections to URLs as DOC exports them, applied at build time so they survive the next export. Matching ignores scheme, case and any trailing slash. 'replace' rewrites the link; 'remove' drops the site from the page entirely. Verified from outside the facility 2026-09-16.",
+
+  "replace": {
+    "g-wonlinetextbooks.com": {
+      "url": "https://www.g-wonlinetextbooks.com/",
+      "note": "Bare domain does not resolve; needs the www prefix. Verified 200."
+    },
+    "ctclink.us": {
+      "url": "https://gateway.ctclink.us/",
+      "note": "ctclink.us does not respond; gateway.ctclink.us is the real entry point. Verified 200."
+    },
+    "ecasas.org": {
+      "url": "http://www.ecasas.org/",
+      "note": "Needs www and does not support https. Reported from the facility; returns HTTP 500 from outside, so recheck from inside."
+    },
+    "lumion3d.net": {
+      "url": "http://lumion3d.net/",
+      "note": "Does not support a secure connection. Reported from the facility; refuses connections from outside, so recheck from inside."
+    }
+  },
+
+  "remove": {
+    "app.boardworkseducation.com": "Domain no longer exists (DNS NXDOMAIN); flagged for removal after facility testing.",
+    "osibridge.com": "Site expired - serves a Squarespace 'Website Expired' placeholder."
+  }
+}

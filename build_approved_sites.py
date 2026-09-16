@@ -30,6 +30,7 @@ except ImportError:
 CSV_DIR = "site_extracts"
 CATEGORY_CHANGES_FILE = "data/category_changes.json"
 DESCRIPTIONS_FILE = "data/site_descriptions.json"
+URL_OVERRIDES_FILE = "data/url_overrides.json"
 
 # Columns the CSV must provide. DOC exports name the URL column "Website";
 # "Website_Url" is accepted too, for exports that were converted by hand
@@ -272,6 +273,47 @@ def normalize_url(raw: str) -> str:
 def escape_html(s: str) -> str:
     import html as html_mod
     return html_mod.escape(str(s), quote=False)
+
+
+# ---------------------------------------------------------------------------
+# URL overrides
+# ---------------------------------------------------------------------------
+def url_key(url: str) -> str:
+    """
+    Matching key for a URL, so an override written one way still matches the
+    export written another: scheme, "www.", case and trailing slash all ignored.
+    """
+    s = str(url or "").strip().lower()
+    s = re.sub(r"^https?://", "", s)
+    s = re.sub(r"^www\.", "", s)
+    return s.rstrip("/")
+
+
+def load_url_overrides() -> tuple[dict, dict]:
+    """
+    Load URL corrections, keyed for matching. Returns (replace, remove).
+
+    DOC exports carry URLs that don't load as written — a missing www, a host
+    that moved, a site that has since expired. Fixing them here rather than in
+    the generated page means the corrections survive the next export.
+    """
+    try:
+        with open(URL_OVERRIDES_FILE, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+    except FileNotFoundError:
+        return {}, {}
+    except Exception as e:
+        print(f"Warning: Could not load URL overrides file: {e}")
+        return {}, {}
+
+    replace = {}
+    for k, v in (raw.get("replace") or {}).items():
+        target = v.get("url") if isinstance(v, dict) else v
+        if target:
+            replace[url_key(k)] = target
+
+    remove = {url_key(k): v for k, v in (raw.get("remove") or {}).items()}
+    return replace, remove
 
 
 # ---------------------------------------------------------------------------
@@ -996,6 +1038,7 @@ def main(argv=None):
 
     descriptions = load_descriptions()
     category_changes = load_category_changes()
+    url_replace, url_remove = load_url_overrides()
 
     # Default: do everything
     force_regen = True
@@ -1020,6 +1063,9 @@ def main(argv=None):
     scraped_count = 0
     cached_count = 0
     disabled_count = 0
+    removed_by_override = 0
+    replaced_by_override = 0
+    seen_url_keys: set[str] = set()
 
     # Build iterator with or without tqdm
     if HAS_TQDM:
@@ -1054,6 +1100,21 @@ def main(argv=None):
             continue
 
         url = normalize_url(raw_url)
+
+        # Corrections for URLs that don't load as DOC exports them.
+        key = url_key(url)
+        seen_url_keys.add(key)
+        if key in url_remove:
+            msg = f"[{idx}/{total_rows}] Removing {name}: {url_remove[key]}"
+            tqdm.write(msg) if HAS_TQDM else print(msg)
+            removed_by_override += 1
+            continue
+        if key in url_replace and url_replace[key] != url:
+            msg = f"[{idx}/{total_rows}] URL override: {url} -> {url_replace[key]}"
+            tqdm.write(msg) if HAS_TQDM else print(msg)
+            url = url_replace[key]
+            replaced_by_override += 1
+
         row_desc = ""
         if has_desc_col:
             row_desc = str(getattr(row, "Website_Description", "") or "")
@@ -1149,6 +1210,17 @@ def main(argv=None):
         print("Descriptions: regenerated for ALL sites (default).")
 
     print(f"Description summary: scraped={scraped_count}, cached={cached_count}, disabled={disabled_count}")
+
+    if url_replace or url_remove:
+        print(
+            f"URL overrides: {replaced_by_override} link(s) corrected, "
+            f"{removed_by_override} site(s) removed."
+        )
+        unused = sorted(
+            (set(url_replace) | set(url_remove)) - seen_url_keys
+        )
+        for k in unused:
+            print(f"  Note: override '{k}' matched nothing in this export.")
 
     if embed_favicons:
         print("Favicons: embedded as data: URLs (default).")

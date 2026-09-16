@@ -148,6 +148,45 @@ Overrides are matched on `site_name` **and** `site_url`, and only apply when
 
 ---
 
+## Fixing broken links
+
+DOC exports sometimes carry URLs that don't load as written — a missing `www`,
+a host that has moved, a site that has expired. Correct them in
+`data/url_overrides.json` rather than in the generated page, so the fix
+survives the next export:
+
+```json
+{
+  "replace": {
+    "ctclink.us": {
+      "url": "https://gateway.ctclink.us/",
+      "note": "why this was changed, and when it was verified"
+    }
+  },
+  "remove": {
+    "osibridge.com": "why this site was dropped"
+  }
+}
+```
+
+`replace` rewrites the link; `remove` drops the site from the page entirely.
+Matching ignores scheme, `www.`, case and any trailing slash, so
+`ctclink.us` matches `https://www.ctclink.us/` too. The build reports what it
+applied, and warns about any override that matched nothing — which is how you
+notice DOC has since fixed or dropped an entry:
+
+```
+[28/104] URL override: https://ctclink.us/ -> https://gateway.ctclink.us/
+[69/104] Removing OSI Bridge: Site expired - serves a Squarespace placeholder.
+URL overrides: 4 link(s) corrected, 2 site(s) removed.
+```
+
+Sites removed this way stay approved by DOC — they're just hidden from the
+page. A site that needs to come back should be re-requested through DOC, or
+the entry deleted from this file once the URL works again.
+
+---
+
 ## Files
 
 ```
@@ -157,7 +196,8 @@ Overrides are matched on `site_name` **and** `site_url`, and only apply when
 ├── site_extracts/              # CSV exports (gitignored)
 └── data/
     ├── site_descriptions.json  # Cached descriptions, keyed by URL
-    └── category_changes.json   # Manual category overrides
+    ├── category_changes.json   # Manual category overrides
+    └── url_overrides.json      # Link corrections and removals
 ```
 
 `data/site_descriptions.json` is the scrape cache — keep it, or every build
