@@ -1250,8 +1250,9 @@ def resolve_sites(df, url_replace: dict, url_remove: dict, announce: bool = True
     page would carry rather than a second interpretation of the same rules.
     """
     sites: list[tuple[str, str, object]] = []
-    removed = replaced = 0
+    removed = replaced = duplicates = 0
     seen: set[str] = set()
+    kept_by_key: dict[str, str] = {}
     total = len(df)
 
     def say(msg: str):
@@ -1285,9 +1286,28 @@ def resolve_sites(df, url_replace: dict, url_remove: dict, announce: bool = True
             url = url_replace[key]
             replaced += 1
 
+        # DOC lists some sites twice under separate whitelist IDs, differing
+        # only by a trailing slash or a www prefix (epa.gov and liveabout.com
+        # both do). They are one site to a student, so the page shows one tile.
+        # Keyed the same way as URL overrides, so the two agree on what counts
+        # as the same address.
+        dupe_key = url_key(url)
+        if dupe_key in kept_by_key:
+            kept_name = kept_by_key[dupe_key]
+            note = f" (listed as '{kept_name}')" if kept_name != name else ""
+            say(f"[{idx}/{total}] Duplicate of {dupe_key}{note}: skipping {name} {url}")
+            duplicates += 1
+            continue
+        kept_by_key[dupe_key] = name
+
         sites.append((name, url, row))
 
-    return sites, {"removed": removed, "replaced": replaced, "seen": seen}
+    return sites, {
+        "removed": removed,
+        "replaced": replaced,
+        "seen": seen,
+        "duplicates": duplicates,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1559,6 +1579,7 @@ def main(argv=None):
 
     sites, resolve_stats = resolve_sites(df, url_replace, url_remove)
     removed_by_override = resolve_stats["removed"]
+    duplicate_rows = resolve_stats["duplicates"]
     replaced_by_override = resolve_stats["replaced"]
     seen_url_keys = resolve_stats["seen"]
 
@@ -1709,6 +1730,9 @@ def main(argv=None):
         print("Descriptions: regenerated for ALL sites (default).")
 
     print(f"Description summary: scraped={scraped_count}, cached={cached_count}, disabled={disabled_count}")
+
+    if duplicate_rows:
+        print(f"Duplicates: {duplicate_rows} row(s) skipped as the same site listed twice.")
 
     if url_replace or url_remove:
         print(

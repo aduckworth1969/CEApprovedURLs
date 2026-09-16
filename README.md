@@ -80,6 +80,13 @@ leading BOM is handled. `URL Category` is used to filter (see below).
 Rows are skipped when the title or URL is blank, or when either contains
 "removed".
 
+**Duplicates are collapsed.** DOC lists some sites twice under separate
+whitelist IDs, differing only by a trailing slash or a `www.` prefix —
+`epa.gov` and `liveabout.com` both do. Those are one site to a student, so the
+first is kept and the rest are skipped, with a line in the build output saying
+which. Matching uses the same rule as URL overrides, so the two always agree on
+what counts as the same address.
+
 ### Education rows only
 
 DOC exports tag each row with the whitelists it belongs to:
