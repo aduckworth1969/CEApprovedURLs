@@ -944,7 +944,10 @@ def check_site(name: str, url: str, timeout: int = CHECK_TIMEOUT) -> dict:
     variants so a failure can be reported as a specific, fixable cause
     ("needs www") rather than a bare "broken".
     """
-    result = {"name": name, "url": url, "klass": "ok", "detail": "", "suggest": None}
+    result = {
+        "name": name, "url": url, "klass": "ok", "detail": "",
+        "suggest": None, "final": None, "dupe_of": "",
+    }
     p = urlparse(url)
     host = p.netloc
 
@@ -953,6 +956,8 @@ def check_site(name: str, url: str, timeout: int = CHECK_TIMEOUT) -> dict:
         return result
 
     primary = probe(url, timeout)
+
+    result["final"] = primary["final"]
 
     if _alive(primary):
         final_host = urlparse(primary["final"]).netloc.lower()
@@ -1073,6 +1078,55 @@ def run_link_check(sites: list) -> list[dict]:
     return results
 
 
+def find_duplicates(results: list[dict]) -> list[dict]:
+    """
+    Find sites that are probably listed twice, and annotate them.
+
+    The build already collapses addresses that differ only in spelling
+    (trailing slash, www, scheme, case). What it cannot safely judge is
+    whether two *different* addresses are the same destination, so those are
+    reported for a person to decide rather than merged.
+
+    Two signals, strongest first:
+
+    - Same landing page. Two entries that end up at the same URL after
+      redirects are the same destination, whatever they were listed as. This
+      catches the cases spelling-matching misses: a bare domain alongside
+      /index.html, or a host alongside the subdomain it forwards to.
+    - Same host, different paths. Often two genuinely different pages, so it
+      is offered as a review item and never as a conclusion.
+    """
+    groups: list[dict] = []
+
+    by_final = defaultdict(list)
+    for r in results:
+        if r.get("final"):
+            by_final[url_key(r["final"])].append(r)
+
+    confirmed: set[int] = set()
+    for key, rows in sorted(by_final.items()):
+        if len(rows) < 2:
+            continue
+        groups.append({"kind": "same page", "key": key, "rows": rows})
+        for r in rows[1:]:
+            r["dupe_of"] = rows[0]["name"]
+        confirmed.update(id(r) for r in rows)
+
+    by_host = defaultdict(list)
+    for r in results:
+        if id(r) in confirmed:
+            continue
+        host = urlparse(r["url"]).netloc.lower().removeprefix("www.")
+        by_host[host].append(r)
+
+    for host, rows in sorted(by_host.items()):
+        if len(rows) < 2:
+            continue
+        groups.append({"kind": "same host", "key": host, "rows": rows})
+
+    return groups
+
+
 def recommended_action(r: dict) -> str:
     """Plain-language next step for a finding, for the shareable report."""
     klass = r["klass"]
@@ -1140,6 +1194,29 @@ def link_report_lines(results: list[dict]) -> list[str]:
             if r["suggest"]:
                 lines.append(f"  {'':<{width}}  -> suggested: {r['suggest']}")
             lines.append(f"  {'':<{width}}  ACTION: {recommended_action(r)}")
+
+    dupes = find_duplicates(results)
+    if dupes:
+        same_page = [g for g in dupes if g["kind"] == "same page"]
+        same_host = [g for g in dupes if g["kind"] == "same host"]
+        lines.append("")
+        lines.append(f"POSSIBLE DUPLICATES ({len(dupes)} group(s))")
+        lines.append("  (spelling duplicates are already collapsed at build time;")
+        lines.append("   these are different addresses that may be the same site)")
+        for g in same_page:
+            lines.append("")
+            lines.append(f"  SAME LANDING PAGE -> {g['key']}")
+            for r in g["rows"]:
+                lines.append(f"      {r['name'][:width]:<{width}}  {r['url']}")
+            lines.append(f"  {'':<{width}}  ACTION: same destination after redirects. "
+                         f"Keep one; remove the rest via data/url_overrides.json.")
+        for g in same_host:
+            lines.append("")
+            lines.append(f"  SAME HOST, DIFFERENT PATHS -> {g['key']}")
+            for r in g["rows"]:
+                lines.append(f"      {r['name'][:width]:<{width}}  {r['url']}")
+            lines.append(f"  {'':<{width}}  ACTION: check whether these are genuinely "
+                         f"different pages. Often they are; if not, keep one.")
     return lines
 
 
@@ -1180,7 +1257,8 @@ def write_report_csv(results: list[dict], path: str) -> None:
         w = csv.writer(f)
         w.writerow([
             "Site", "URL on page", "Status", "Finding",
-            "Suggested URL", "Owner", "Recommended action", "Checked",
+            "Suggested URL", "Possible duplicate of", "Owner",
+            "Recommended action", "Checked",
         ])
         today = f"{datetime.now():%Y-%m-%d}"
         for r in sorted(results, key=lambda x: (order.get(x["klass"], 99), x["name"].lower())):
@@ -1190,6 +1268,7 @@ def write_report_csv(results: list[dict], path: str) -> None:
                 headings.get(r["klass"], r["klass"]).split("—")[0].strip(),
                 r["detail"],
                 r["suggest"] or "",
+                r.get("dupe_of", ""),
                 action_owner(r),
                 recommended_action(r),
                 today,
@@ -1585,6 +1664,7 @@ def main(argv=None):
 
     if args.check_links:
         results = run_link_check(sites)
+        find_duplicates(results)  # annotates dupe_of before any output
         print_link_report(results)
 
         if args.report:

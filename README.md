@@ -246,6 +246,7 @@ Results are grouped by cause, worst first:
 | **NEEDS www / DROP www / NO HTTPS** | The listed URL fails but an obvious variant works. |
 | **REDIRECTS OFF-HOST** | The link works, but lands on a different host. |
 | **BLOCKED TO AUTOMATION** | 401/403/429 — the host answered, so it's alive. |
+| **POSSIBLE DUPLICATES** | Two entries that may be the same site. |
 
 Two of those deserve attention:
 
@@ -254,6 +255,17 @@ normal network. On a filtered network it may not: if the filter whitelists
 `careercruising.com` and the site redirects to `public.careercruising.com`,
 students hit a block even though nothing is "broken". This is a likely cause of
 "the page doesn't load" reports where the URL looks correct.
+
+**POSSIBLE DUPLICATES** covers what the build can't collapse on its own. Spelling
+variants (trailing slash, `www.`, scheme, case) are merged automatically, but two
+genuinely different addresses might still be one site. The check reports two
+signals and merges neither:
+
+- *Same landing page* — both end at the same URL after redirects, so they are the
+  same destination however they were listed. This catches a bare domain listed
+  alongside `/index.html`, or a host listed alongside the subdomain it forwards to.
+- *Same host, different paths* — usually two real pages, so it is only ever a
+  review item.
 
 **BLOCKED TO AUTOMATION** is not breakage. Many government and news sites
 return 403 to anything that isn't a browser. They are listed so you can check
