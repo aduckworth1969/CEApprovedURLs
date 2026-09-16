@@ -37,3 +37,6 @@ test.html
 .env
 .env.local
 
+
+# Local backup artifacts
+local_backups/
