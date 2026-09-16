@@ -830,6 +830,9 @@ def build_sections_html(categorized: dict[str, list], favicons: FaviconFetcher) 
 # ---------------------------------------------------------------------------
 CHECK_WORKERS = 8
 CHECK_TIMEOUT = 12
+# Let rate limits from the concurrent pass expire before the serial re-check.
+CHECK_COOLDOWN = 8
+CHECK_RETRY_SPACING = 1.5
 
 # A 200 is not proof of life: expired and parked domains serve a real page.
 PARKING_SIGNATURES = (
@@ -959,6 +962,19 @@ def check_site(name: str, url: str) -> dict:
         result.update(klass="parked", detail="placeholder page (expired or parked domain)")
         return result
 
+    # A 401/403/429 means the host answered, so the listed URL is not the
+    # problem -- something refused this client. Stop here rather than trying
+    # variants: if a variant happens to answer 200, concluding "needs www"
+    # would be wrong and would send someone chasing a link that works fine in
+    # a browser. pewresearch.org does exactly this, serving 200 to curl and
+    # 403 to python-requests.
+    if primary["status"] in BLOCKED_STATUSES:
+        result.update(
+            klass="blocked",
+            detail=f"HTTP {primary['status']} — host answered but refused an automated request",
+        )
+        return result
+
     # The listed URL failed. Try the variants that explain the common causes.
     www_swapped = swap_www(url)
     https_to_http = urlunparse(p._replace(scheme="http")) if p.scheme == "https" else None
@@ -1014,42 +1030,150 @@ def run_link_check(sites: list) -> list[dict]:
 
     suspect = [r for r in results if r["klass"] in CHECK_BROKEN]
     if suspect:
-        print(f"Re-checking {len(suspect)} problem link(s) one at a time...\n")
+        # Pause before re-checking, and space the retries out. Without the
+        # cooldown the second opinion lands while a rate-limited host is still
+        # rate-limiting, and simply confirms the first wrong answer -- which is
+        # how a healthy site (pewresearch.org) was reported as needing www.
+        print(
+            f"Re-checking {len(suspect)} problem link(s) one at a time "
+            f"after a {CHECK_COOLDOWN}s cooldown...\n"
+        )
+        time.sleep(CHECK_COOLDOWN)
         by_url = {}
         for r in suspect:
-            time.sleep(0.5)
             by_url[r["url"]] = check_site(r["name"], r["url"])
+            time.sleep(CHECK_RETRY_SPACING)
         results = [by_url.get(r["url"], r) for r in results]
 
     return results
 
 
-def print_link_report(results: list[dict]) -> None:
+def recommended_action(r: dict) -> str:
+    """Plain-language next step for a finding, for the shareable report."""
+    klass = r["klass"]
+    if klass == "dead_dns":
+        return "Domain is gone. Remove from the page and drop from the DOC whitelist."
+    if klass == "parked":
+        return "Domain expired. Remove from the page and drop from the DOC whitelist."
+    if klass == "unreachable":
+        return "Nothing responded. Confirm the site still exists, then remove or re-request."
+    if klass == "server_error":
+        return "Fault on the site's end. Contact the vendor; remove if it stays down."
+    if klass == "client_error":
+        return "Page not found. Find the current address and submit a DOC URL request."
+    if klass in ("needs_www", "drop_www", "http_only"):
+        return f"Correct the link to {r['suggest']} in data/url_overrides.json."
+    if klass == "moved":
+        return (
+            "Test from inside a facility. If blocked, allow the destination host "
+            "or submit a DOC URL request for it."
+        )
+    if klass == "blocked":
+        return "None. The host answered; it refuses automated checks only."
+    return "None."
+
+
+def action_owner(r: dict) -> str:
+    """Who has to do something about it."""
+    klass = r["klass"]
+    if klass == "moved":
+        return "Facility testing"
+    if klass in ("server_error", "client_error"):
+        return "IT / vendor"
+    if klass in ("dead_dns", "parked", "unreachable"):
+        return "Remove from page"
+    if klass in ("needs_www", "drop_www", "http_only"):
+        return "Fix in build"
+    return "None"
+
+
+def link_report_lines(results: list[dict]) -> list[str]:
+    """The grouped report as plain text lines, shared by console and .txt output."""
     grouped = defaultdict(list)
     for r in results:
         grouped[r["klass"]].append(r)
 
-    width = max((len(r["name"]) for r in results), default=10)
-    width = min(width, 38)
+    width = min(max((len(r["name"]) for r in results), default=10), 38)
+    lines: list[str] = []
 
     for klass, heading in CHECK_CLASSES:
         rows = grouped.get(klass)
         if not rows:
             continue
-        if klass == "ok":
-            print(f"\n{heading} ({len(rows)})")
-            continue
-        print(f"\n{heading} ({len(rows)})")
+        lines.append("")
+        lines.append(f"{heading} ({len(rows)})")
         if klass == "moved":
-            print("  (the listed URL works, but a filter that whitelists only the")
-            print("   original host will still block the page it lands on)")
+            lines.append("  (the listed URL works, but a filter that whitelists only the")
+            lines.append("   original host will still block the page it lands on)")
         if klass == "blocked":
-            print("  (not evidence of breakage - these answered, so the host is alive)")
+            lines.append("  (not evidence of breakage - these answered, so the host is alive)")
+        if klass == "ok":
+            continue
         for r in sorted(rows, key=lambda x: x["name"].lower()):
-            print(f"  {r['name'][:width]:<{width}}  {r['url']}")
-            print(f"  {'':<{width}}  {r['detail']}")
+            lines.append(f"  {r['name'][:width]:<{width}}  {r['url']}")
+            lines.append(f"  {'':<{width}}  {r['detail']}")
             if r["suggest"]:
-                print(f"  {'':<{width}}  -> suggested: {r['suggest']}")
+                lines.append(f"  {'':<{width}}  -> suggested: {r['suggest']}")
+            lines.append(f"  {'':<{width}}  ACTION: {recommended_action(r)}")
+    return lines
+
+
+def write_report_txt(results: list[dict], path: str, source: str) -> None:
+    """A plain-text report that can be pasted into an email or ticket."""
+    broken = sum(1 for r in results if r["klass"] in CHECK_BROKEN)
+    moved = sum(1 for r in results if r["klass"] == "moved")
+    blocked = sum(1 for r in results if r["klass"] == "blocked")
+    ok = len(results) - broken - moved - blocked
+
+    head = [
+        "APPROVED SITES LINK REVIEW",
+        "=" * 60,
+        f"Checked   : {datetime.now():%Y-%m-%d %H:%M}",
+        f"Source    : {source}",
+        f"Links     : {len(results)}",
+        f"Summary   : {ok} OK, {broken} broken, {moved} redirecting off-host, "
+        f"{blocked} blocked to automation",
+        "",
+        "Checked from a staff network, not from inside a facility. A site reachable",
+        "here may still be blocked by the facility filter, and an internal-only host",
+        "may fail here yet work there. This finds problems at the source; it does not",
+        "replace testing from inside.",
+    ]
+    body = link_report_lines(results)
+
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text("\n".join(head + body) + "\n", encoding="utf-8")
+
+
+def write_report_csv(results: list[dict], path: str) -> None:
+    """One row per site, for a spreadsheet — sortable and filterable for review."""
+    order = {k: i for i, (k, _) in enumerate(CHECK_CLASSES)}
+    headings = dict(CHECK_CLASSES)
+
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "Site", "URL on page", "Status", "Finding",
+            "Suggested URL", "Owner", "Recommended action", "Checked",
+        ])
+        today = f"{datetime.now():%Y-%m-%d}"
+        for r in sorted(results, key=lambda x: (order.get(x["klass"], 99), x["name"].lower())):
+            w.writerow([
+                r["name"],
+                r["url"],
+                headings.get(r["klass"], r["klass"]).split("—")[0].strip(),
+                r["detail"],
+                r["suggest"] or "",
+                action_owner(r),
+                recommended_action(r),
+                today,
+            ])
+
+
+def print_link_report(results: list[dict]) -> None:
+    for line in link_report_lines(results):
+        print(line)
 
 
 def write_link_suggestions(results: list[dict], path: str) -> int:
@@ -1287,6 +1411,12 @@ def main(argv=None):
              "sites, then exit without building.",
     )
     parser.add_argument(
+        "--report",
+        metavar="PATH",
+        help="With --check-links, also write the findings to a file. Format follows "
+             "the extension: .csv for a spreadsheet, anything else plain text.",
+    )
+    parser.add_argument(
         "--all-categories",
         action="store_true",
         help=f"Build every row, instead of only those whose '{CATEGORY_COLUMN}' "
@@ -1301,6 +1431,9 @@ def main(argv=None):
     )
 
     args = parser.parse_args(argv)
+
+    if args.report and not args.check_links:
+        parser.error("--report only applies to --check-links.")
 
     template_path = Path(args.template)
     if not template_path.exists():
@@ -1399,6 +1532,14 @@ def main(argv=None):
     if args.check_links:
         results = run_link_check(sites)
         print_link_report(results)
+
+        if args.report:
+            if Path(args.report).suffix.lower() == ".csv":
+                write_report_csv(results, args.report)
+                print(f"\nWrote spreadsheet report to {args.report}")
+            else:
+                write_report_txt(results, args.report, str(csv_path))
+                print(f"\nWrote text report to {args.report}")
 
         written = write_link_suggestions(results, URL_SUGGESTIONS_FILE)
         broken = sum(1 for r in results if r["klass"] in CHECK_BROKEN)

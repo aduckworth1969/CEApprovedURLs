@@ -118,6 +118,7 @@ filter entirely.
 | `--no-embed-favicons` | Don't fetch or embed favicons |
 | `--all-categories` | Build every row, not just `IncarEducation` ones |
 | `--check-links` | Check every link and report problems, then exit without building |
+| `--report PATH` | With `--check-links`, also write the findings to a file (`.csv` or text) |
 
 ### Which one to use
 
@@ -250,7 +251,30 @@ students hit a block even though nothing is "broken". This is a likely cause of
 return 403 to anything that isn't a browser. They are listed so you can check
 them by hand, not because anything is wrong.
 
-Unambiguous fixes are written to `data/url_overrides.suggested.json` as a
+### Sharing the results
+
+To send the findings to IT or to a facility for testing, write them to a file:
+
+```bash
+python build_approved_sites.py --check-links --report link-review.csv
+python build_approved_sites.py --check-links --report link-review.txt
+```
+
+The format follows the extension — `.csv` for a spreadsheet, anything else
+plain text. Both carry the same findings; the spreadsheet adds one row per
+site with **Owner** and **Recommended action** columns, so it can be sorted
+and assigned:
+
+| Site | URL on page | Status | Finding | Suggested URL | Owner | Recommended action |
+|---|---|---|---|---|---|---|
+| Magic School | `magicschool.com` | NOT FOUND | HTTP 404 | | IT / vendor | Find the current address and submit a DOC URL request |
+| Worksource Washington | `www.worksourcewa.com` | REDIRECTS OFF-HOST | lands on `worksource.my.site.com` | `worksource.my.site.com/worksourcewa/` | Facility testing | Test from inside; if blocked, request the destination host |
+
+The CSV is written with a BOM so Excel opens it as UTF-8 without mangling
+accents. Note that `*.csv` is gitignored, so a report written into the repo
+folder won't be committed by accident.
+
+Unambiguous fixes are also written to `data/url_overrides.suggested.json` as a
 ready-to-merge fragment. Nothing is applied automatically — a redirect can lead
 somewhere the site didn't intend, and removing an approved site is a content
 decision. Review it, move what you want into `data/url_overrides.json`, and
