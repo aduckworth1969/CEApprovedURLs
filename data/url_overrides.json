@@ -13,15 +13,13 @@
     "ecasas.org": {
       "url": "http://www.ecasas.org/",
       "note": "Needs www and does not support https. Reported from the facility; returns HTTP 500 from outside, so recheck from inside."
-    },
-    "lumion3d.net": {
-      "url": "http://lumion3d.net/",
-      "note": "Does not support a secure connection. Reported from the facility; refuses connections from outside, so recheck from inside."
     }
   },
 
   "remove": {
     "app.boardworkseducation.com": "Domain no longer exists (DNS NXDOMAIN); flagged for removal after facility testing.",
-    "osibridge.com": "Site expired - serves a Squarespace 'Website Expired' placeholder."
+    "osibridge.com": "Site expired - serves a Squarespace 'Website Expired' placeholder.",
+    "lumion3d.net": "Domain has no address record - nothing to reach. Was previously listed as an http-only override; --check-links showed getaddrinfo finds no A record for lumion3d.net or www.lumion3d.net (2026-09-16).",
+    "cct-pearsonvue.com": "Domain has no address record - only an MX record for mail, no web host. Confirmed dead from inside and outside the facility (2026-09-16)."
   }
 }
