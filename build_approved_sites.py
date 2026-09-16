@@ -563,9 +563,9 @@ class FaviconFetcher:
         url = f"https://www.google.com/s2/favicons?sz=32&domain_url={domain}"
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
-        mime = resp.headers.get("Content-Type", "image/png")
-        b64 = base64.b64encode(resp.content).decode("ascii")
-        return f"data:{mime};base64,{b64}"
+        return self._image_data_url(
+            resp.content, resp.headers.get("Content-Type", "image/png")
+        )
 
     def _fetch_from_html(self, url: str) -> str | None:
         """
@@ -614,16 +614,70 @@ class FaviconFetcher:
         # Fetch the icon
         icon_resp = requests.get(icon_url, timeout=15)
         icon_resp.raise_for_status()
+        return self._image_data_url(
+            icon_resp.content, icon_resp.headers.get("Content-Type", "image/x-icon")
+        )
 
-        mime = icon_resp.headers.get("Content-Type", "image/x-icon")
-        b64 = base64.b64encode(icon_resp.content).decode("ascii")
+    @staticmethod
+    def _image_data_url(content: bytes, header_mime: str) -> str | None:
+        """
+        Build an image data: URL, trusting the bytes over the Content-Type.
+
+        Some servers label a .ico as text/plain or application/octet-stream,
+        and a browser will not render <img src="data:text/plain;...">, so the
+        icon would silently come out blank. Sniff the signature instead and
+        fall back to the header only when it already claims an image.
+        """
+        if not content:
+            return None
+
+        sniffed = None
+        if content.startswith(b"\x00\x00\x01\x00"):
+            sniffed = "image/x-icon"
+        elif content.startswith(b"\x89PNG\r\n\x1a\n"):
+            sniffed = "image/png"
+        elif content.startswith(b"GIF8"):
+            sniffed = "image/gif"
+        elif content.startswith(b"\xff\xd8\xff"):
+            sniffed = "image/jpeg"
+        elif content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+            sniffed = "image/webp"
+        elif content.lstrip()[:4].lower() in (b"<svg", b"<?xm"):
+            sniffed = "image/svg+xml"
+
+        mime = sniffed or header_mime.split(";")[0].strip()
+        if not mime.startswith("image/"):
+            return None
+
+        b64 = base64.b64encode(content).decode("ascii")
         return f"data:{mime};base64,{b64}"
+
+    def _fetch_default_path(self, parsed) -> str | None:
+        """
+        Last resort: /favicon.ico on the site's own scheme and host.
+
+        Deliberately not redirect-following to a different host — a site that
+        404s its bare domain onto www (or onto a parked page) would otherwise
+        hand back that host's icon, or an HTML error page dressed as one.
+        """
+        scheme = parsed.scheme or "https"
+        origin = f"{scheme}://{parsed.netloc}"
+        resp = requests.get(f"{origin}/favicon.ico", timeout=10)
+        resp.raise_for_status()
+        return self._image_data_url(
+            resp.content, resp.headers.get("Content-Type", "image/x-icon")
+        )
 
     def for_url(self, url: str) -> str:
         """
         Get a favicon data: URL for a site, with caching:
-        - Try Google S2.
-        - If that fails, try parsing the page HTML for <link rel="icon" ...>.
+        - Try Google S2, once more after a pause if it fails. Over a hundred
+          sites in quick succession, S2 intermittently refuses a request that
+          succeeds on its own; without the retry one blip drops an icon that
+          is perfectly fetchable.
+        - Then parse the page HTML for <link rel="icon" ...>.
+        - Then try /favicon.ico at the site's own origin, which covers sites
+          that declare no icon link and that S2 has no record of.
         """
         if not self.enabled:
             return ""
@@ -640,16 +694,27 @@ class FaviconFetcher:
 
         data_url = None
 
-        # 1) Try Google S2
-        try:
-            data_url = self._fetch_google(domain)
-        except Exception:
-            data_url = None
+        # 1) Try Google S2, with one retry
+        for attempt in range(2):
+            try:
+                data_url = self._fetch_google(domain)
+                break
+            except Exception:
+                data_url = None
+                if attempt == 0:
+                    time.sleep(1.5)
 
         # 2) Fallback: parse HTML for <link rel="icon"...>
         if not data_url:
             try:
                 data_url = self._fetch_from_html(url)
+            except Exception:
+                data_url = None
+
+        # 3) Fallback: the conventional /favicon.ico on the site's own origin
+        if not data_url:
+            try:
+                data_url = self._fetch_default_path(parsed)
             except Exception:
                 data_url = None
 
