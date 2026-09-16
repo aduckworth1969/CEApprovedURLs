@@ -9,9 +9,10 @@ local web server on the education network).
 
 ## What it produces
 
-`Approved_Websites.html` — one file containing every approved site, grouped into
-categories, with favicons embedded as `data:` URLs. No external requests are
-made when a student opens it, so it works on a fully isolated network.
+`Approved_Websites.html` — one file listing the DOC-approved sites tagged for
+education, grouped into categories, with favicons embedded as `data:` URLs. No
+external requests are made when a student opens it, so it works on a fully
+isolated network.
 
 The page itself provides:
 
@@ -27,7 +28,7 @@ users — favorites live only in that browser's local storage.
 
 ## Building the page
 
-Install dependencies once:
+Needs Python 3.10 or newer. Install dependencies once:
 
 ```bash
 pip install -r requirements.txt
@@ -38,6 +39,10 @@ Then build:
 ```bash
 python build_approved_sites.py
 ```
+
+Run it as a script, not a module — `python -m build_approved_sites.py` fails,
+because `-m` takes a module name rather than a filename. (`python -m
+build_approved_sites`, without the `.py`, does work.)
 
 With no arguments it lists the CSV exports in `site_extracts/`, newest first,
 and offers the newest as the default — press Enter to accept it, or type a
@@ -56,7 +61,7 @@ Select a file [1-3], or Enter for 1) OSN URL Filtering.csv:
 To skip the prompt, name the file directly:
 
 ```bash
-python build_approved_sites.py site_extracts/reconciled_20260709.csv
+python build_approved_sites.py "site_extracts/OSN URL Filtering.csv"
 ```
 
 When stdin isn't a terminal (scripts, CI) the default is used without prompting.
@@ -113,13 +118,36 @@ filter entirely.
 | `--no-embed-favicons` | Don't fetch or embed favicons |
 | `--all-categories` | Build every row, not just `IncarEducation` ones |
 
-By default the build re-fetches a description for **every** site, which visits
-each one in turn with a polite delay — expect it to take a while. For a quick
-rebuild after editing categories or the template:
+### Which one to use
+
+**For a normal rebuild, use `--descriptions-missing-only`:**
 
 ```bash
-python build_approved_sites.py --no-descriptions --no-embed-favicons
+python build_approved_sites.py --descriptions-missing-only
 ```
+
+It reuses the cached descriptions and scrapes only sites it hasn't seen, so a
+rebuild takes a minute rather than the better part of an hour.
+
+This matters beyond speed. The **default** re-scrapes every site and
+**overwrites `data/site_descriptions.json`**, discarding any hand-editing done
+to those descriptions. Use the bare command only when you actually want every
+description regenerated from scratch.
+
+For a quick check with no network at all — template edits, category tuning:
+
+```bash
+python build_approved_sites.py --descriptions-missing-only --no-embed-favicons
+```
+
+### When a new export arrives
+
+1. Drop the CSV into `site_extracts/`.
+2. Run `python build_approved_sites.py --descriptions-missing-only` and press
+   Enter to take the newest file.
+3. Read the build output: it names any site dropped as "removed", every URL
+   override applied, and any override that no longer matches anything.
+4. Commit the regenerated `Approved_Websites.html` and publish it.
 
 ---
 
@@ -184,6 +212,30 @@ URL overrides: 4 link(s) corrected, 2 site(s) removed.
 Sites removed this way stay approved by DOC — they're just hidden from the
 page. A site that needs to come back should be re-requested through DOC, or
 the entry deleted from this file once the URL works again.
+
+---
+
+## Favicons
+
+Each site's icon is embedded in the page as a `data:` URL, so no icon is
+fetched when a student opens it. The build tries, in order:
+
+1. Google's favicon service, retried once after a pause — across a hundred-plus
+   sites it intermittently refuses a request that succeeds on its own, and
+   without the retry one blip permanently blanks a fetchable icon
+2. the page's own `<link rel="icon">`
+3. `/favicon.ico` on the site's origin, without following redirects to another
+   host, so a bare domain that 404s onto `www` can't return the wrong icon
+
+The image type comes from the bytes, not the `Content-Type` header — some
+servers label a `.ico` as `text/plain`, and a browser won't render
+`<img src="data:text/plain;...">`. HTML error pages and empty responses are
+rejected rather than embedded.
+
+Sites that serve no icon at all simply have none; that's cosmetic. **A favicon
+is not evidence a site is reachable** — an expired domain parked on a hosting
+provider still serves that provider's icon. Use `--no-embed-favicons` to skip
+fetching entirely.
 
 ---
 
