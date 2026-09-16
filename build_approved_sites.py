@@ -4,6 +4,7 @@ import csv
 import json
 import random
 import re
+import socket
 import sys
 import time
 import html
@@ -11,7 +12,7 @@ import html
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse, urljoin, urlunparse
 
 import pandas as pd
 import requests
@@ -31,6 +32,7 @@ CSV_DIR = "site_extracts"
 CATEGORY_CHANGES_FILE = "data/category_changes.json"
 DESCRIPTIONS_FILE = "data/site_descriptions.json"
 URL_OVERRIDES_FILE = "data/url_overrides.json"
+URL_SUGGESTIONS_FILE = "data/url_overrides.suggested.json"
 
 # Columns the CSV must provide. DOC exports name the URL column "Website";
 # "Website_Url" is accepted too, for exports that were converted by hand
@@ -824,6 +826,322 @@ def build_sections_html(categorized: dict[str, list], favicons: FaviconFetcher) 
 
 
 # ---------------------------------------------------------------------------
+# Link checking
+# ---------------------------------------------------------------------------
+CHECK_WORKERS = 8
+CHECK_TIMEOUT = 12
+
+# A 200 is not proof of life: expired and parked domains serve a real page.
+PARKING_SIGNATURES = (
+    "website expired",
+    "this domain has expired",
+    "domain has expired",
+    "domain is for sale",
+    "buy this domain",
+    "parked free",
+    "domain parking",
+    "account suspended",
+    "this site is temporarily unavailable",
+    "future home of something quite cool",
+)
+
+# Statuses that mean "the host is up and answered, but refused an automated
+# request". A 403 from a CDN or a 401 from a login portal says nothing about
+# whether the site works for a student in a browser, so these are reported
+# apart from genuine breakage rather than counted as failures.
+BLOCKED_STATUSES = {401, 403, 407, 429, 451}
+
+# Ordered worst-first, which is also the order the report prints them.
+CHECK_CLASSES = (
+    ("dead_dns", "DEAD — host has no address record"),
+    ("parked", "EXPIRED / PARKED — serves a placeholder page"),
+    ("unreachable", "UNREACHABLE — no variant responded"),
+    ("server_error", "SERVER ERROR — 5xx"),
+    ("client_error", "NOT FOUND — 4xx"),
+    ("needs_www", "NEEDS www — bare host fails, www works"),
+    ("drop_www", "DROP www — www fails, bare host works"),
+    ("http_only", "NO HTTPS — only reachable over http"),
+    ("moved", "REDIRECTS OFF-HOST — lands on a host that may need whitelisting"),
+    ("blocked", "BLOCKED TO AUTOMATION — host is up; verify these by hand"),
+    ("ok", "OK"),
+)
+
+# Classes that mean a student would hit a broken link.
+CHECK_BROKEN = {
+    "dead_dns", "parked", "unreachable", "server_error",
+    "client_error", "needs_www", "drop_www", "http_only",
+}
+
+
+def host_resolves(host: str) -> bool:
+    try:
+        socket.getaddrinfo(host, None)
+        return True
+    except OSError:
+        return False
+
+
+def swap_www(url: str) -> str:
+    """The other spelling of a host: www.x.com <-> x.com."""
+    p = urlparse(url)
+    host = p.netloc
+    alt = host[4:] if host.lower().startswith("www.") else "www." + host
+    return urlunparse(p._replace(netloc=alt))
+
+
+def probe(url: str) -> dict:
+    """
+    One request. Reports transport failure, status, where it landed, and
+    whether the page looks like a parking or expiry placeholder.
+    """
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
+    try:
+        resp = requests.get(
+            url, headers=headers, timeout=CHECK_TIMEOUT, allow_redirects=True
+        )
+    except requests.RequestException as e:
+        return {"error": type(e).__name__, "status": None, "final": None, "parked": False}
+
+    parked = False
+    if "html" in resp.headers.get("Content-Type", "").lower():
+        head = resp.text[:4000].lower()
+        parked = any(sig in head for sig in PARKING_SIGNATURES)
+
+    return {
+        "error": None,
+        "status": resp.status_code,
+        "final": resp.url,
+        "parked": parked,
+    }
+
+
+def _alive(p: dict) -> bool:
+    return p["error"] is None and p["status"] is not None and p["status"] < 400 and not p["parked"]
+
+
+def check_site(name: str, url: str) -> dict:
+    """
+    Classify one site, trying the listed URL first and then the obvious
+    variants so a failure can be reported as a specific, fixable cause
+    ("needs www") rather than a bare "broken".
+    """
+    result = {"name": name, "url": url, "klass": "ok", "detail": "", "suggest": None}
+    p = urlparse(url)
+    host = p.netloc
+
+    if not host_resolves(host) and not host_resolves(urlparse(swap_www(url)).netloc):
+        result.update(klass="dead_dns", detail="no DNS record for host or its www/bare twin")
+        return result
+
+    primary = probe(url)
+
+    if _alive(primary):
+        final_host = urlparse(primary["final"]).netloc.lower()
+        if url_key(final_host) != url_key(host):
+            result.update(
+                klass="moved",
+                detail=f"redirects to {final_host}",
+                suggest=primary["final"],
+            )
+        else:
+            result.update(detail=f"HTTP {primary['status']}")
+        return result
+
+    if primary["parked"]:
+        result.update(klass="parked", detail="placeholder page (expired or parked domain)")
+        return result
+
+    # The listed URL failed. Try the variants that explain the common causes.
+    www_swapped = swap_www(url)
+    https_to_http = urlunparse(p._replace(scheme="http")) if p.scheme == "https" else None
+    http_and_swap = urlunparse(urlparse(www_swapped)._replace(scheme="http")) if p.scheme == "https" else None
+
+    bare_is_listed = not host.lower().startswith("www.")
+    candidates = [
+        ("needs_www" if bare_is_listed else "drop_www", www_swapped),
+        ("http_only", https_to_http),
+        ("http_only", http_and_swap),
+    ]
+
+    for klass, candidate in candidates:
+        if not candidate:
+            continue
+        alt = probe(candidate)
+        if _alive(alt):
+            result.update(
+                klass=klass,
+                detail=f"listed URL failed ({primary['error'] or 'HTTP ' + str(primary['status'])}), "
+                       f"{candidate} returns {alt['status']}",
+                suggest=alt["final"] or candidate,
+            )
+            return result
+
+    # Nothing worked; report the most informative failure we saw.
+    if primary["status"] in BLOCKED_STATUSES:
+        result.update(
+            klass="blocked",
+            detail=f"HTTP {primary['status']} — host answered but refused an automated request",
+        )
+    elif primary["status"] and primary["status"] >= 500:
+        result.update(klass="server_error", detail=f"HTTP {primary['status']} on every variant")
+    elif primary["status"] and primary["status"] >= 400:
+        result.update(klass="client_error", detail=f"HTTP {primary['status']} on every variant")
+    else:
+        result.update(klass="unreachable", detail=f"{primary['error']} on every variant")
+    return result
+
+
+def run_link_check(sites: list) -> list[dict]:
+    """
+    Check every site concurrently, then re-check anything that failed, one at
+    a time. Concurrency makes a site look dead when it is merely rate-limiting
+    or slow under load, and a serial second opinion costs little when the
+    failures are a handful.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    print(f"\nChecking {len(sites)} links ({CHECK_WORKERS} at a time)...\n")
+    with ThreadPoolExecutor(max_workers=CHECK_WORKERS) as pool:
+        results = list(pool.map(lambda s: check_site(s[0], s[1]), sites))
+
+    suspect = [r for r in results if r["klass"] in CHECK_BROKEN]
+    if suspect:
+        print(f"Re-checking {len(suspect)} problem link(s) one at a time...\n")
+        by_url = {}
+        for r in suspect:
+            time.sleep(0.5)
+            by_url[r["url"]] = check_site(r["name"], r["url"])
+        results = [by_url.get(r["url"], r) for r in results]
+
+    return results
+
+
+def print_link_report(results: list[dict]) -> None:
+    grouped = defaultdict(list)
+    for r in results:
+        grouped[r["klass"]].append(r)
+
+    width = max((len(r["name"]) for r in results), default=10)
+    width = min(width, 38)
+
+    for klass, heading in CHECK_CLASSES:
+        rows = grouped.get(klass)
+        if not rows:
+            continue
+        if klass == "ok":
+            print(f"\n{heading} ({len(rows)})")
+            continue
+        print(f"\n{heading} ({len(rows)})")
+        if klass == "moved":
+            print("  (the listed URL works, but a filter that whitelists only the")
+            print("   original host will still block the page it lands on)")
+        if klass == "blocked":
+            print("  (not evidence of breakage - these answered, so the host is alive)")
+        for r in sorted(rows, key=lambda x: x["name"].lower()):
+            print(f"  {r['name'][:width]:<{width}}  {r['url']}")
+            print(f"  {'':<{width}}  {r['detail']}")
+            if r["suggest"]:
+                print(f"  {'':<{width}}  -> suggested: {r['suggest']}")
+
+
+def write_link_suggestions(results: list[dict], path: str) -> int:
+    """
+    Write the unambiguous fixes as a url_overrides.json fragment to review and
+    merge by hand. Deliberately not merged automatically: a redirect can point
+    somewhere the site did not intend, and removals are a content decision.
+    """
+    replace, remove = {}, {}
+    for r in results:
+        key = url_key(r["url"])
+        if r["klass"] in ("needs_www", "drop_www", "http_only", "moved") and r["suggest"]:
+            replace[key] = {
+                "url": r["suggest"],
+                "note": f"{r['name']}: {r['detail']} (checked {datetime.now():%Y-%m-%d})",
+            }
+        elif r["klass"] in ("dead_dns", "parked"):
+            remove[key] = f"{r['name']}: {r['detail']} (checked {datetime.now():%Y-%m-%d})"
+
+    if not replace and not remove:
+        return 0
+
+    payload = {
+        "_comment": (
+            "Suggestions from --check-links. Review, then merge the entries you "
+            f"want into {URL_OVERRIDES_FILE}. Not applied until you do."
+        ),
+        "replace": replace,
+        "remove": remove,
+    }
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
+    return len(replace) + len(remove)
+
+
+# ---------------------------------------------------------------------------
+# Row resolution
+# ---------------------------------------------------------------------------
+def resolve_sites(df, url_replace: dict, url_remove: dict, announce: bool = True):
+    """
+    Turn CSV rows into the (name, url, row) list the page is built from.
+
+    Applies, in order: skip blank rows, skip rows marked "removed", normalize
+    the URL, drop sites named in the overrides' remove block, and rewrite those
+    in its replace block.
+
+    --check-links uses this too, so the checker tests exactly the links the
+    page would carry rather than a second interpretation of the same rules.
+    """
+    sites: list[tuple[str, str, object]] = []
+    removed = replaced = 0
+    seen: set[str] = set()
+    total = len(df)
+
+    def say(msg: str):
+        if not announce:
+            return
+        tqdm.write(msg) if HAS_TQDM else print(msg)
+
+    for idx, row in enumerate(df.itertuples(index=False), start=1):
+        name = str(row.Title).strip()
+        raw_url = str(row.Website_Url).strip()
+
+        if not name or not raw_url:
+            say(f"[{idx}/{total}] Skipping empty row")
+            continue
+
+        if "removed" in name.lower() or "removed" in raw_url.lower():
+            say(f"[{idx}/{total}] Skipping removed site: {name}")
+            continue
+
+        url = normalize_url(raw_url)
+
+        # Corrections for URLs that don't load as DOC exports them.
+        key = url_key(url)
+        seen.add(key)
+        if key in url_remove:
+            say(f"[{idx}/{total}] Removing {name}: {url_remove[key]}")
+            removed += 1
+            continue
+        if key in url_replace and url_replace[key] != url:
+            say(f"[{idx}/{total}] URL override: {url} -> {url_replace[key]}")
+            url = url_replace[key]
+            replaced += 1
+
+        sites.append((name, url, row))
+
+    return sites, {"removed": removed, "replaced": replaced, "seen": seen}
+
+
+# ---------------------------------------------------------------------------
 # CSV selection
 # ---------------------------------------------------------------------------
 def csv_columns(path: Path) -> list[str]:
@@ -963,6 +1281,12 @@ def main(argv=None):
     )
 
     parser.add_argument(
+        "--check-links",
+        action="store_true",
+        help="Check every link and report dead, moved, www-only and http-only "
+             "sites, then exit without building.",
+    )
+    parser.add_argument(
         "--all-categories",
         action="store_true",
         help=f"Build every row, instead of only those whose '{CATEGORY_COLUMN}' "
@@ -1067,54 +1391,48 @@ def main(argv=None):
     replaced_by_override = 0
     seen_url_keys: set[str] = set()
 
-    # Build iterator with or without tqdm
+    sites, resolve_stats = resolve_sites(df, url_replace, url_remove)
+    removed_by_override = resolve_stats["removed"]
+    replaced_by_override = resolve_stats["replaced"]
+    seen_url_keys = resolve_stats["seen"]
+
+    if args.check_links:
+        results = run_link_check(sites)
+        print_link_report(results)
+
+        written = write_link_suggestions(results, URL_SUGGESTIONS_FILE)
+        broken = sum(1 for r in results if r["klass"] in CHECK_BROKEN)
+        moved = sum(1 for r in results if r["klass"] == "moved")
+        blocked = sum(1 for r in results if r["klass"] == "blocked")
+        ok = len(results) - broken - moved - blocked
+        print(
+            f"\n{ok} OK, {broken} broken, {moved} redirecting off-host, "
+            f"{blocked} blocked to automation (of {len(results)})."
+        )
+        if written:
+            print(f"Wrote {written} suggested override(s) to {URL_SUGGESTIONS_FILE}.")
+            print(f"Review them, then merge the ones you want into {URL_OVERRIDES_FILE}.")
+        print(
+            "\nNote: checked from this machine, not from inside a facility. A site "
+            "reachable here\nmay still be blocked by the facility filter, and an "
+            "internal-only host may fail here\nyet work there. This finds dead and "
+            "moved sites; it does not replace facility testing."
+        )
+        return
+
+    # Progress is now counted over the sites that survived resolution, not
+    # every CSV row, so the numbers match the work actually being done.
+    total_rows = len(sites)
+
     if HAS_TQDM:
         iterator = enumerate(
-            tqdm(
-                df.itertuples(index=False),
-                total=total_rows,
-                desc="Processing sites",
-                unit="site",
-            ),
+            tqdm(sites, total=total_rows, desc="Processing sites", unit="site"),
             start=1,
         )
     else:
-        iterator = enumerate(df.itertuples(index=False), start=1)
+        iterator = enumerate(sites, start=1)
 
-    for idx, row in iterator:
-        name = str(row.Title).strip()
-        raw_url = str(row.Website_Url).strip()
-
-        if not name or not raw_url:
-            if HAS_TQDM:
-                tqdm.write(f"[{idx}/{total_rows}] Skipping empty row")
-            else:
-                print(f"[{idx}/{total_rows}] Skipping empty row")
-            continue
-
-        if "removed" in name.lower() or "removed" in raw_url.lower():
-            if HAS_TQDM:
-                tqdm.write(f"[{idx}/{total_rows}] Skipping removed site: {name}")
-            else:
-                print(f"[{idx}/{total_rows}] Skipping removed site: {name}")
-            continue
-
-        url = normalize_url(raw_url)
-
-        # Corrections for URLs that don't load as DOC exports them.
-        key = url_key(url)
-        seen_url_keys.add(key)
-        if key in url_remove:
-            msg = f"[{idx}/{total_rows}] Removing {name}: {url_remove[key]}"
-            tqdm.write(msg) if HAS_TQDM else print(msg)
-            removed_by_override += 1
-            continue
-        if key in url_replace and url_replace[key] != url:
-            msg = f"[{idx}/{total_rows}] URL override: {url} -> {url_replace[key]}"
-            tqdm.write(msg) if HAS_TQDM else print(msg)
-            url = url_replace[key]
-            replaced_by_override += 1
-
+    for idx, (name, url, row) in iterator:
         row_desc = ""
         if has_desc_col:
             row_desc = str(getattr(row, "Website_Description", "") or "")

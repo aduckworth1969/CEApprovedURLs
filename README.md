@@ -117,6 +117,7 @@ filter entirely.
 | `--no-descriptions` | Don't fetch any descriptions; use the cache, then the CSV, then a generic fallback |
 | `--no-embed-favicons` | Don't fetch or embed favicons |
 | `--all-categories` | Build every row, not just `IncarEducation` ones |
+| `--check-links` | Check every link and report problems, then exit without building |
 
 ### Which one to use
 
@@ -212,6 +213,56 @@ URL overrides: 4 link(s) corrected, 2 site(s) removed.
 Sites removed this way stay approved by DOC — they're just hidden from the
 page. A site that needs to come back should be re-requested through DOC, or
 the entry deleted from this file once the URL works again.
+
+---
+
+## Checking links
+
+```bash
+python build_approved_sites.py --check-links
+```
+
+Checks every link the page would carry — after the category filter and URL
+overrides, so it tests exactly what students would click — and exits without
+building. Takes about a minute for ~100 sites.
+
+Results are grouped by cause, worst first:
+
+| Group | Meaning |
+|---|---|
+| **DEAD** | Host has no address record. The domain is gone. |
+| **EXPIRED / PARKED** | Responds, but serves a placeholder — a 200 is not proof of life. |
+| **UNREACHABLE** | Nothing answered on any variant. |
+| **SERVER ERROR / NOT FOUND** | 5xx, or a genuine 404. |
+| **NEEDS www / DROP www / NO HTTPS** | The listed URL fails but an obvious variant works. |
+| **REDIRECTS OFF-HOST** | The link works, but lands on a different host. |
+| **BLOCKED TO AUTOMATION** | 401/403/429 — the host answered, so it's alive. |
+
+Two of those deserve attention:
+
+**REDIRECTS OFF-HOST** is easy to dismiss, because the link works fine from a
+normal network. On a filtered network it may not: if the filter whitelists
+`careercruising.com` and the site redirects to `public.careercruising.com`,
+students hit a block even though nothing is "broken". This is a likely cause of
+"the page doesn't load" reports where the URL looks correct.
+
+**BLOCKED TO AUTOMATION** is not breakage. Many government and news sites
+return 403 to anything that isn't a browser. They are listed so you can check
+them by hand, not because anything is wrong.
+
+Unambiguous fixes are written to `data/url_overrides.suggested.json` as a
+ready-to-merge fragment. Nothing is applied automatically — a redirect can lead
+somewhere the site didn't intend, and removing an approved site is a content
+decision. Review it, move what you want into `data/url_overrides.json`, and
+rebuild.
+
+### What it can't tell you
+
+It checks from **your** machine, not from inside a facility. A site reachable
+here can still be blocked by the facility filter, and an internal-only host can
+fail here yet work there. It finds origin-side rot — dead domains, expired
+sites, moved hosts — which is the problem that accumulates quietly between
+exports. It does not replace testing from inside.
 
 ---
 
