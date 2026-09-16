@@ -40,17 +40,17 @@ python build_approved_sites.py
 ```
 
 With no arguments it lists the CSV exports in `site_extracts/`, newest first,
-and offers the newest usable one as the default — press Enter to accept it, or
-type a number to build from a different export:
+and offers the newest as the default — press Enter to accept it, or type a
+number to build from a different export:
 
 ```
 📁 CSV files in site_extracts/ (newest first):
 
-   1) OSN URL Filtering.csv       2026-09-15 11:13  ⚠ missing Website_Url
- → 2) reconciled_20260709.csv     2026-07-09 09:35  ✓ usable
-   3) All OSN approved sites.csv  2026-07-09 08:36  ⚠ missing Website_Url
+ → 1) OSN URL Filtering.csv       2026-09-15 11:13  ✓ usable
+   2) reconciled_20260709.csv     2026-07-09 09:35  ✓ usable
+   3) All OSN approved sites.csv  2026-07-09 08:36  ✓ usable
 
-Select a file [1-3], or Enter for 2) reconciled_20260709.csv:
+Select a file [1-3], or Enter for 1) OSN URL Filtering.csv:
 ```
 
 To skip the prompt, name the file directly:
@@ -63,12 +63,14 @@ When stdin isn't a terminal (scripts, CI) the default is used without prompting.
 
 ### CSV format
 
-The export must have a `Title` column and a `Website_Url` column. Files missing
-either are flagged in the picker rather than failing mid-build.
+The export must have a `Title` column and a URL column named either `Website`
+(what DOC exports use) or `Website_Url` (older, hand-converted exports). Either
+works as-is, with no manual renaming; when both are present, `Website` wins.
+Files missing a usable column are flagged in the picker rather than failing
+mid-build.
 
-Note that raw OSN exports currently use `Website` rather than `Website_Url`, so
-they need that column renamed before use — `reconciled_20260709.csv` is an
-example of an already-converted export.
+Extra columns — `URL Category`, `ID`, `Associated URLs`, `Authorizing SR` — are
+ignored. A leading BOM is handled.
 
 Rows are skipped when the title or URL is blank, or when either contains
 "removed".
@@ -133,7 +135,7 @@ Overrides are matched on `site_name` **and** `site_url`, and only apply when
 ```
 
 `data/site_descriptions.json` is the scrape cache — keep it, or every build
-re-visits all ~137 sites. It's updated in place on each run.
+re-visits every site in the export. It's updated in place on each run.
 
 **`site_extracts/` is gitignored** (`*.csv`), so CSV exports are not in the
 repo. Colleagues cloning this will need an export from you before they can

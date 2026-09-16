@@ -31,8 +31,11 @@ CSV_DIR = "site_extracts"
 CATEGORY_CHANGES_FILE = "data/category_changes.json"
 DESCRIPTIONS_FILE = "data/site_descriptions.json"
 
-# Columns the CSV must provide.
-REQUIRED_COLUMNS = ("Title", "Website_Url")
+# Columns the CSV must provide. DOC exports name the URL column "Website";
+# "Website_Url" is accepted too, for exports that were converted by hand
+# before the builder understood the DOC default.
+TITLE_COLUMN = "Title"
+URL_COLUMNS = ("Website", "Website_Url")
 
 # ---------------------------------------------------------------------------
 # Categories
@@ -721,7 +724,12 @@ def csv_columns(path: Path) -> list[str]:
 def missing_columns(path: Path) -> list[str]:
     """Which required columns this CSV lacks (empty list = usable)."""
     cols = csv_columns(path)
-    return [c for c in REQUIRED_COLUMNS if c not in cols]
+    missing = []
+    if TITLE_COLUMN not in cols:
+        missing.append(TITLE_COLUMN)
+    if not any(c in cols for c in URL_COLUMNS):
+        missing.append(" or ".join(URL_COLUMNS))
+    return missing
 
 
 def list_csv_candidates(csv_dir: Path) -> list[tuple[Path, list[str]]]:
@@ -859,13 +867,26 @@ def main(argv=None):
         csv_path = choose_csv(Path(CSV_DIR))
 
     df = pd.read_csv(csv_path, encoding="utf-8-sig")
+    df.columns = [str(c).strip() for c in df.columns]
 
-    missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
+    missing = []
+    if TITLE_COLUMN not in df.columns:
+        missing.append(TITLE_COLUMN)
+    url_col = next((c for c in URL_COLUMNS if c in df.columns), None)
+    if url_col is None:
+        missing.append(" or ".join(URL_COLUMNS))
     if missing:
         raise SystemExit(
             f"{csv_path} is missing required column(s): {', '.join(missing)}.\n"
             f"Found: {', '.join(df.columns)}"
         )
+
+    # Work with one canonical URL column downstream. Renaming onto an existing
+    # column would leave two columns of the same name, so drop the other first.
+    if url_col != "Website_Url":
+        df = df.drop(columns=["Website_Url"], errors="ignore")
+        df = df.rename(columns={url_col: "Website_Url"})
+        print(f"Using '{url_col}' as the site URL column.")
 
     if not HAS_TQDM:
         print("Note: tqdm is not installed. Run 'pip install tqdm' to get a fancy progress bar.")
