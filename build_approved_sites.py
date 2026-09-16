@@ -37,6 +37,15 @@ DESCRIPTIONS_FILE = "data/site_descriptions.json"
 TITLE_COLUMN = "Title"
 URL_COLUMNS = ("Website", "Website_Url")
 
+# DOC exports tag each row with the whitelists it belongs to, e.g.
+# ["IncarEducation"] or ["IncarEducation","IncarVetProgramWhitelist"].
+# This page covers education only, so rows are kept when their categories
+# mention CATEGORY_FILTER. Substring matching is deliberate: it also picks up
+# IncarEducationStudent and IncarEducationStaffURL. Exports without the column
+# are used in full.
+CATEGORY_COLUMN = "URL Category"
+CATEGORY_FILTER = "IncarEducation"
+
 # ---------------------------------------------------------------------------
 # Categories
 # ---------------------------------------------------------------------------
@@ -846,6 +855,13 @@ def main(argv=None):
         help="Only scrape descriptions for sites missing in the JSON (no regen of existing).",
     )
 
+    parser.add_argument(
+        "--all-categories",
+        action="store_true",
+        help=f"Build every row, instead of only those whose '{CATEGORY_COLUMN}' "
+             f"mentions '{CATEGORY_FILTER}'.",
+    )
+
     # Favicons: default = embed favicons.
     parser.add_argument(
         "--no-embed-favicons",
@@ -887,6 +903,27 @@ def main(argv=None):
         df = df.drop(columns=["Website_Url"], errors="ignore")
         df = df.rename(columns={url_col: "Website_Url"})
         print(f"Using '{url_col}' as the site URL column.")
+
+    # Keep education rows only (unless the export doesn't say, or --all-categories).
+    if args.all_categories:
+        print("Category filter disabled: building every row in the export.")
+    elif CATEGORY_COLUMN in df.columns:
+        keep = df[CATEGORY_COLUMN].astype(str).str.contains(
+            CATEGORY_FILTER, case=False, na=False
+        )
+        dropped = int((~keep).sum())
+        df = df[keep]
+        print(f"Category filter '{CATEGORY_FILTER}': kept {len(df)} rows, skipped {dropped}.")
+        if df.empty:
+            raise SystemExit(
+                f"No rows in {csv_path} have a '{CATEGORY_COLUMN}' containing "
+                f"'{CATEGORY_FILTER}'. Use --all-categories to build the export as-is."
+            )
+    else:
+        print(
+            f"Note: no '{CATEGORY_COLUMN}' column in {csv_path.name}; "
+            f"building every row (cannot filter to {CATEGORY_FILTER})."
+        )
 
     if not HAS_TQDM:
         print("Note: tqdm is not installed. Run 'pip install tqdm' to get a fancy progress bar.")

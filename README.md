@@ -69,11 +69,36 @@ works as-is, with no manual renaming; when both are present, `Website` wins.
 Files missing a usable column are flagged in the picker rather than failing
 mid-build.
 
-Extra columns — `URL Category`, `ID`, `Associated URLs`, `Authorizing SR` — are
-ignored. A leading BOM is handled.
+Extra columns — `ID`, `Associated URLs`, `Authorizing SR` — are ignored, and a
+leading BOM is handled. `URL Category` is used to filter (see below).
 
 Rows are skipped when the title or URL is blank, or when either contains
 "removed".
+
+### Education rows only
+
+DOC exports tag each row with the whitelists it belongs to:
+
+```
+["IncarEducation"]
+["IncarEducation","IncarVetProgramWhitelist"]
+["IncarReentry"]
+```
+
+This page covers education, so only rows whose `URL Category` mentions
+**`IncarEducation`** are built. Everything else — reentry, vet program, law
+library — is skipped, and the build prints the counts:
+
+```
+Category filter 'IncarEducation': kept 104 rows, skipped 38.
+```
+
+Matching is on the text, so `IncarEducationStudent` and `IncarEducationStaffURL`
+are included too.
+
+Exports with no `URL Category` column (such as the older converted files) can't
+be filtered and are built in full, with a note. `--all-categories` skips the
+filter entirely.
 
 ---
 
@@ -86,6 +111,7 @@ Rows are skipped when the title or URL is blank, or when either contains
 | `--descriptions-missing-only` | Only fetch descriptions for sites not already cached |
 | `--no-descriptions` | Don't fetch any descriptions; use the cache, then the CSV, then a generic fallback |
 | `--no-embed-favicons` | Don't fetch or embed favicons |
+| `--all-categories` | Build every row, not just `IncarEducation` ones |
 
 By default the build re-fetches a description for **every** site, which visits
 each one in turn with a polite delay — expect it to take a while. For a quick
