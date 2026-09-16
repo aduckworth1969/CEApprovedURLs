@@ -1,5 +1,6 @@
 import argparse
 import base64
+import csv
 import json
 import random
 import re
@@ -24,11 +25,14 @@ except ImportError:
     HAS_TQDM = False
 
 # ---------------------------------------------------------------------------
-# Files (same semantics as old script)
+# Files
 # ---------------------------------------------------------------------------
-REPORTS_FILE = "reports/site_reports.json"
-CATEGORY_CHANGES_FILE = "reports/category_changes.json"
-DESCRIPTIONS_FILE = "reports/site_descriptions.json"
+CSV_DIR = "site_extracts"
+CATEGORY_CHANGES_FILE = "data/category_changes.json"
+DESCRIPTIONS_FILE = "data/site_descriptions.json"
+
+# Columns the CSV must provide.
+REQUIRED_COLUMNS = ("Title", "Website_Url")
 
 # ---------------------------------------------------------------------------
 # Categories
@@ -259,35 +263,10 @@ def escape_html(s: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Reports
-# ---------------------------------------------------------------------------
-def load_reports():
-    """Load existing reports from JSON file."""
-    try:
-        with open(REPORTS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
-    except Exception as e:
-        print(f"Warning: Could not load reports file: {e}")
-        return []
-
-
-def save_reports(reports):
-    """Save reports to JSON file"""
-    try:
-        Path(REPORTS_FILE).parent.mkdir(parents=True, exist_ok=True)
-        with open(REPORTS_FILE, "w", encoding="utf-8") as f:
-            json.dump(reports, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"Warning: Could not save reports file: {e}")
-
-
-# ---------------------------------------------------------------------------
-# Category changes (admin overrides)
+# Category changes (manual overrides)
 # ---------------------------------------------------------------------------
 def load_category_changes():
-    """Load admin category changes from JSON file."""
+    """Load manual category overrides from JSON file."""
     try:
         with open(CATEGORY_CHANGES_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -296,16 +275,6 @@ def load_category_changes():
     except Exception as e:
         print(f"Warning: Could not load category changes file: {e}")
         return []
-
-
-def save_category_changes(changes):
-    """Save admin category changes to JSON file."""
-    try:
-        Path(CATEGORY_CHANGES_FILE).parent.mkdir(parents=True, exist_ok=True)
-        with open(CATEGORY_CHANGES_FILE, "w", encoding="utf-8") as f:
-            json.dump(changes, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"Warning: Could not save category changes file: {e}")
 
 
 def categorize_auto(site_name: str, site_url: str, description: str | None) -> str:
@@ -353,7 +322,7 @@ def get_category_for_site(
     category_changes: list,
 ) -> str:
     """
-    Get category for a site, respecting admin overrides first.
+    Get category for a site, respecting manual overrides first.
 
     - If there is an applied override for this (site_name, site_url), use it.
     - Otherwise, use automatic categorization based on title, URL, and description.
@@ -736,13 +705,113 @@ def build_sections_html(categorized: dict[str, list], favicons: FaviconFetcher) 
 
 
 # ---------------------------------------------------------------------------
+# CSV selection
+# ---------------------------------------------------------------------------
+def csv_columns(path: Path) -> list[str]:
+    """Read just the header row of a CSV. utf-8-sig strips a leading BOM."""
+    try:
+        with open(path, "r", encoding="utf-8-sig", newline="") as f:
+            for row in csv.reader(f):
+                return [c.strip() for c in row]
+    except Exception:
+        pass
+    return []
+
+
+def missing_columns(path: Path) -> list[str]:
+    """Which required columns this CSV lacks (empty list = usable)."""
+    cols = csv_columns(path)
+    return [c for c in REQUIRED_COLUMNS if c not in cols]
+
+
+def list_csv_candidates(csv_dir: Path) -> list[tuple[Path, list[str]]]:
+    """All CSVs in csv_dir, newest first, each paired with its missing columns."""
+    paths = sorted(
+        csv_dir.glob("*.csv"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    return [(p, missing_columns(p)) for p in paths]
+
+
+def choose_csv(csv_dir: Path) -> Path:
+    """
+    Pick the CSV to build from, interactively.
+
+    The newest file in csv_dir is offered as the default; pressing Enter
+    accepts it, or a number selects a different one. Files that lack the
+    required columns are listed but flagged, and the default falls through
+    to the newest usable file so Enter never selects a build that must fail.
+
+    When stdin is not a terminal (CI, piped input) the default is used
+    without prompting.
+    """
+    if not csv_dir.is_dir():
+        raise SystemExit(
+            f"No '{csv_dir}' directory found. Pass a CSV path explicitly, e.g.\n"
+            f"  python build_approved_sites.py path/to/export.csv"
+        )
+
+    candidates = list_csv_candidates(csv_dir)
+    if not candidates:
+        raise SystemExit(
+            f"No CSV files found in '{csv_dir}'. Add an export there, or pass a\n"
+            f"path explicitly: python build_approved_sites.py path/to/export.csv"
+        )
+
+    # Default to the newest usable file; fall back to the newest overall.
+    default_idx = next(
+        (i for i, (_, missing) in enumerate(candidates) if not missing),
+        0,
+    )
+
+    print(f"\n📁 CSV files in {csv_dir}/ (newest first):\n")
+    width = max(len(p.name) for p, _ in candidates)
+    for i, (path, missing) in enumerate(candidates):
+        mtime = datetime.fromtimestamp(path.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+        status = f"⚠ missing {', '.join(missing)}" if missing else "✓ usable"
+        marker = "→" if i == default_idx else " "
+        print(f" {marker} {i + 1}) {path.name:<{width}}  {mtime}  {status}")
+
+    default_path = candidates[default_idx][0]
+
+    if not sys.stdin.isatty():
+        print(f"\nNot a terminal; using default: {default_path}\n")
+        return default_path
+
+    prompt = f"\nSelect a file [1-{len(candidates)}], or Enter for {default_idx + 1}) {default_path.name}: "
+    while True:
+        try:
+            raw = input(prompt).strip()
+        except EOFError:
+            print()
+            return default_path
+
+        if not raw:
+            print(f"Using: {default_path}\n")
+            return default_path
+
+        if raw.isdigit() and 1 <= int(raw) <= len(candidates):
+            chosen = candidates[int(raw) - 1][0]
+            print(f"Using: {chosen}\n")
+            return chosen
+
+        print(f"  Please enter a number from 1 to {len(candidates)}, or press Enter.")
+
+
+# ---------------------------------------------------------------------------
 # Main builder
 # ---------------------------------------------------------------------------
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description="Build approved websites HTML from SharePoint CSV + template, with descriptions, category overrides, reports, and favicons."
+        description="Build the approved websites page from a CSV export + template, "
+                    "with descriptions, category overrides, and embedded favicons."
     )
-    parser.add_argument("csv", help="SharePoint_List_Export_*.csv")
+    parser.add_argument(
+        "csv",
+        nargs="?",
+        help=f"CSV export to build from. Omit to choose from {CSV_DIR}/ (newest first).",
+    )
     parser.add_argument(
         "-t",
         "--template",
@@ -752,8 +821,8 @@ def main(argv=None):
     parser.add_argument(
         "-o",
         "--output",
-        default="index.html",
-        help="Output HTML file (default: index.html)",
+        default="Approved_Websites.html",
+        help="Output HTML file (default: Approved_Websites.html)",
     )
 
     # Description behavior: default = do everything (regen all).
@@ -782,17 +851,27 @@ def main(argv=None):
     if not template_path.exists():
         raise SystemExit(f"Template not found: {template_path}")
 
-    df = pd.read_csv(args.csv)
+    if args.csv:
+        csv_path = Path(args.csv)
+        if not csv_path.exists():
+            raise SystemExit(f"CSV not found: {csv_path}")
+    else:
+        csv_path = choose_csv(Path(CSV_DIR))
 
-    if "Title" not in df.columns or "Website_Url" not in df.columns:
-        raise SystemExit("CSV must contain at least 'Title' and 'Website_Url' columns.")
+    df = pd.read_csv(csv_path, encoding="utf-8-sig")
+
+    missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
+    if missing:
+        raise SystemExit(
+            f"{csv_path} is missing required column(s): {', '.join(missing)}.\n"
+            f"Found: {', '.join(df.columns)}"
+        )
 
     if not HAS_TQDM:
         print("Note: tqdm is not installed. Run 'pip install tqdm' to get a fancy progress bar.")
         print("Proceeding with simple progress output.\n")
 
     descriptions = load_descriptions()
-    reports = load_reports()
     category_changes = load_category_changes()
 
     # Default: do everything
@@ -889,7 +968,7 @@ def main(argv=None):
             force_regen=force_regen,
         )
 
-        # Use description-aware categorization (with admin overrides)
+        # Use description-aware categorization (with manual overrides)
         category = get_category_for_site(name, url, desc, category_changes)
 
         if embed_favicons:
@@ -904,8 +983,6 @@ def main(argv=None):
 
     # Persist JSON sidecars
     save_descriptions(descriptions)
-    save_reports(reports)
-    save_category_changes(category_changes)
 
     for cat in categorized:
         categorized[cat].sort(key=lambda t: t[0].lower())

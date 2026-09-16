@@ -1,12 +1,11 @@
-# Generated from Python imports in main.py, server.py, run.py
+# Dependencies for build_approved_sites.py
 
-# main.py - Excel reading and data processing
+# CSV reading
 pandas
-openpyxl
 
-# main.py - HTTP requests and HTML parsing
+# Fetching site descriptions and favicons
 requests
 beautifulsoup4
 
-# server.py - Environment variables from .env file
-python-dotenv
+# Optional: progress bar during the build (the script runs without it)
+tqdm

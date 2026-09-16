@@ -1,170 +1,148 @@
-# Approved Websites System – Prison Environment
+# Approved Websites Page – Corrections Education
 
-> ⚠️ **Security-First, Offline-Capable Website Directory for Corrections Education**
-
-This system generates and serves a secure, categorized directory of **approved websites** for incarcerated students. It is designed to operate entirely on a **local network**, with **no cloud dependencies**, while providing IT staff with a private administrative reporting interface.
-
----
-
-## 🔗 Deployment Guide
-
-For AWS and server deployment instructions, see:
-
-➡️ **[AWS Deployment Guide](AWS_DEPLOYMENT.md)**
+Generates a single, self-contained HTML page listing the DOC-approved websites
+available to incarcerated students. The page is a static file with no backend:
+it is built here, then served however you choose (static host, file share,
+local web server on the education network).
 
 ---
 
-## ✅ Key Security Features
+## What it produces
 
-- **User privacy protected** – reports are never visible to other users
-- **IT staff access only** – admin dashboard is restricted
-- **No external services required** – fully offline capable
-- **Local JSON storage** with controlled access
-- **Auditable report trail** with timestamps
+`Approved_Websites.html` — one file containing every approved site, grouped into
+categories, with favicons embedded as `data:` URLs. No external requests are
+made when a student opens it, so it works on a fully isolated network.
+
+The page itself provides:
+
+- Search across site names, URLs and descriptions
+- Category navigation sidebar
+- Favorites, saved in the browser with drag-and-drop ordering
+- Light / dark / system theme, and list / grid views
+
+Everything is client-side. Nothing is tracked, transmitted or shared between
+users — favorites live only in that browser's local storage.
 
 ---
 
-## 🚀 Quick Start (Local)
+## Building the page
 
-### 0. Configure Admin Password (required for server)
-Copy `.env.example` to `.env` and set your admin dashboard password. The server will not start without this.
-
-### 1. Generate Website Listing
+Install dependencies once:
 
 ```bash
-python build_approved_sites.py SharePoint_List_Export_20251208_145101.csv
+pip install -r requirements.txt
 ```
 
-Or auto-detect the latest export:
+Then build:
 
 ```bash
-python run_app.py
+python build_approved_sites.py
 ```
 
-### 2. Start Secure Server
+With no arguments it lists the CSV exports in `site_extracts/`, newest first,
+and offers the newest usable one as the default — press Enter to accept it, or
+type a number to build from a different export:
+
+```
+📁 CSV files in site_extracts/ (newest first):
+
+   1) OSN URL Filtering.csv       2026-09-15 11:13  ⚠ missing Website_Url
+ → 2) reconciled_20260709.csv     2026-07-09 09:35  ✓ usable
+   3) All OSN approved sites.csv  2026-07-09 08:36  ⚠ missing Website_Url
+
+Select a file [1-3], or Enter for 2) reconciled_20260709.csv:
+```
+
+To skip the prompt, name the file directly:
 
 ```bash
-python web_server.py
+python build_approved_sites.py site_extracts/reconciled_20260709.csv
 ```
 
-Or launch everything together:
+When stdin isn't a terminal (scripts, CI) the default is used without prompting.
+
+### CSV format
+
+The export must have a `Title` column and a `Website_Url` column. Files missing
+either are flagged in the picker rather than failing mid-build.
+
+Note that raw OSN exports currently use `Website` rather than `Website_Url`, so
+they need that column renamed before use — `reconciled_20260709.csv` is an
+example of an already-converted export.
+
+Rows are skipped when the title or URL is blank, or when either contains
+"removed".
+
+---
+
+## Options
+
+| Flag | Effect |
+|---|---|
+| `-o`, `--output` | Output file (default: `Approved_Websites.html`) |
+| `-t`, `--template` | Template file (default: `template.html`) |
+| `--descriptions-missing-only` | Only fetch descriptions for sites not already cached |
+| `--no-descriptions` | Don't fetch any descriptions; use the cache, then the CSV, then a generic fallback |
+| `--no-embed-favicons` | Don't fetch or embed favicons |
+
+By default the build re-fetches a description for **every** site, which visits
+each one in turn with a polite delay — expect it to take a while. For a quick
+rebuild after editing categories or the template:
 
 ```bash
-python run_app.py
-```
-
-### 3. Access Interfaces
-
-- **User Interface**: `http://localhost:8080`
-- **IT Admin Dashboard**: `http://localhost:8080/admin`
-
----
-
-## 📁 Current File Structure
-
-```
-root/
-├── build_approved_sites.py        # CSV → HTML generator
-├── run_app.py                    # Build + start server launcher
-├── web_server.py                 # Secure local HTTP server
-├── template.html                 # UI template
-├── index.html                    # Generated site directory
-├── reports/
-│   ├── site_reports.json
-│   ├── site_descriptions.json
-│   └── category_changes.json
-└── SharePoint_List_Export_*.csv
+python build_approved_sites.py --no-descriptions --no-embed-favicons
 ```
 
 ---
 
-## 📱 User Interface Features
+## Categories
 
-### For Incarcerated Students
+Each site is placed by keyword scoring against its URL (+3), title (+2) and
+description (+1), using the `category_keywords` lists near the top of
+`build_approved_sites.py`. No keyword match means `Other`.
 
-- Browse approved websites by category
-- Favorites with drag-and-drop ordering
-- Report issues with websites
-- Clean, simplified interface
-- No user tracking or cross-user visibility
-
-### Report Types Available
-
-- Site not loading
-- Site blocked or filtered
-- Broken links
-- Slow loading
-- Content issues
-- Other technical problems
-
----
-
-## 🔒 IT Admin Dashboard
-
-### Features
-
-- View all submitted reports
-- Filter by issue type and site
-- Export reports
-- Full timestamped audit trail
-
-### Security
-
-- Password protected
-- Local server only
-- No external authentication
-- No user identity stored
-
----
-
-## 📊 Report Data
-
-### Storage
-
-- **File**: `reports/site_reports.json`
-- **Format**: JSON
-- **Backups**: Manual or scheduled
-
-### Example Report
+To correct a single site without touching the keyword lists, add an entry to
+`data/category_changes.json`:
 
 ```json
-{
-  "site_name": "Example Site",
-  "site_url": "https://example.com",
-  "issue_type": "site_not_loading",
-  "description": "User description",
-  "timestamp": "2025-01-01T12:00:00",
-  "report_id": "unique_id"
-}
+[
+  {
+    "site_name": "Seattle Business Magazine",
+    "site_url": "https://seattlebusinessmag.com/",
+    "new_category": "Technology",
+    "status": "applied"
+  }
+]
 ```
 
----
-
-## 🛡️ Prison Environment Design Goals
-
-- No user identity tracking
-- No peer-to-peer communication
-- No shared report visibility
-- Fully offline capable
-- IT-controlled updates and exports
+Overrides are matched on `site_name` **and** `site_url`, and only apply when
+`status` is `"applied"`.
 
 ---
 
-## 🔄 Maintenance Workflow
+## Files
 
-1. Upload new SharePoint CSV
-2. Run `python run_app.py`
-3. Review reports via `/admin`
-4. Export backups as needed
+```
+├── build_approved_sites.py     # CSV → HTML generator
+├── template.html               # Page template + all CSS/JS
+├── Approved_Websites.html      # Generated output
+├── site_extracts/              # CSV exports (gitignored)
+└── data/
+    ├── site_descriptions.json  # Cached descriptions, keyed by URL
+    └── category_changes.json   # Manual category overrides
+```
+
+`data/site_descriptions.json` is the scrape cache — keep it, or every build
+re-visits all ~137 sites. It's updated in place on each run.
+
+**`site_extracts/` is gitignored** (`*.csv`), so CSV exports are not in the
+repo. Colleagues cloning this will need an export from you before they can
+build.
 
 ---
 
-## ✅ Recommended Execution Flow
+## Serving the page
 
-- **Daily use**: `python web_server.py`
-- **When CSV updates**: `python run_app.py`
-
----
-
-**Built for secure corrections education environments with privacy and operational integrity as top priorities.**
-
+`Approved_Websites.html` is fully self-contained — copy it wherever it needs to
+be served from. It requires no server-side code, no network access from the
+client, and no build step at view time.
