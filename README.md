@@ -127,6 +127,9 @@ filter entirely.
 | `--check-links` | Check every link and report problems, then exit without building |
 | `--report PATH` | With `--check-links`, write findings to this exact file instead of the default pair |
 | `--no-report` | With `--check-links`, skip writing report files |
+| `--trends` | Write `Build_History.html` from the recorded history, then exit |
+| `--backfill-history` | Seed the history from past builds on disk and in git, then exit |
+| `--no-history` | Don't record this run in the history database |
 
 ### Which one to use
 
@@ -158,6 +161,7 @@ python build_approved_sites.py --descriptions-missing-only --no-embed-favicons
 3. Read the build output: it names any site dropped as "removed", every URL
    override applied, and any override that no longer matches anything.
 4. Commit the regenerated `Approved_Websites.html` and publish it.
+5. Run `python build_approved_sites.py --trends` to refresh the trend report.
 
 ---
 
@@ -323,6 +327,80 @@ exports. It does not replace testing from inside.
 
 ---
 
+## Run history and trends
+
+Every build and every `--check-links` run records itself in
+`data/build_history.db`, a SQLite file. Nothing to install and no server — it is
+a single file you can copy, back up or mail like any other.
+
+This exists because the counts a build prints scroll off the terminal. The page
+can tell you how many sites are approved today; only a history can tell you
+whether that number is going up.
+
+### The report
+
+```bash
+python build_approved_sites.py --trends
+```
+
+writes `Build_History.html` — one self-contained file, no external requests, so
+it opens from an email attachment or a file share on a network with no internet
+access. It carries:
+
+- the current approved-site count, and the change since the previous build
+- a growth chart across every recorded build
+- sites per category, with the change since the last comparable build
+- which sites were **added, removed or re-categorised** since the previous build
+- link health: what is broken now, and how long each link has been broken
+- a table of every recorded run, so every plotted number is also readable as text
+
+Recording is automatic. `--trends` only reads what is already there, so it needs
+no CSV, no template and no network — and it never re-runs a build.
+
+### Seeding the history
+
+```bash
+python build_approved_sites.py --backfill-history
+```
+
+Past builds left their counts in the pages they generated — in git, in
+`local_backups/`, and in the current `Approved_Websites.html` — so the history
+does not have to start from empty. This reads them back and records them, which
+recovers the series from **28 Oct 2025** onward. Safe to run more than once;
+runs already recorded are left alone.
+
+Builds recovered this way are flagged **reconstructed** in the report. The
+counts are those builds' own; only the manner of recording differs.
+
+### Reading the growth chart
+
+Two things about it are deliberate, because both would otherwise mislead:
+
+**The line breaks on 16 Sep 2026.** That is when the page began building only
+`IncarEducation` rows, which cut it from 137 sites to 103. Drawn as one
+continuous line that looks like 34 sites were withdrawn, when the page's *scope*
+narrowed instead. Totals either side of the break are not comparable, so they
+are not joined, and the earlier ones are drawn in gray as context.
+
+**The axis starts at zero.** Growth is the question, and a truncated axis would
+turn every small wobble into a cliff.
+
+A few older builds also list the same site twice under two spellings of its
+address, from before the build collapsed those. Where that happened the run
+table shows a lower "distinct" count beside the published total.
+
+### If you would rather it didn't record
+
+`--no-history` skips recording for one run. The database is ordinary SQLite, so
+you can also query it directly:
+
+```bash
+sqlite3 data/build_history.db \
+  "SELECT ran_at, total_sites FROM build_runs ORDER BY ran_at;"
+```
+
+---
+
 ## Favicons
 
 Each site's icon is embedded in the page as a `data:` URL, so no icon is
@@ -351,14 +429,21 @@ fetching entirely.
 
 ```
 ├── build_approved_sites.py     # CSV → HTML generator
+├── urlkeys.py                  # URL matching rules, shared by the three users of them
+├── history.py                  # Records each run to SQLite; queries it back
+├── history_backfill.py         # Recovers past runs from disk and git
+├── trend_report.py             # Renders the history as HTML
 ├── template.html               # Page template + all CSS/JS
-├── Approved_Websites.html      # Generated output
+├── trend_template.html         # Trend report template + all CSS/JS
+├── Approved_Websites.html      # Generated output — the student-facing page
+├── Build_History.html          # Generated output — the trend report
 ├── site_extracts/              # CSV exports (gitignored)
 ├── link_reports/               # --check-links output (gitignored)
 └── data/
     ├── site_descriptions.json  # Cached descriptions, keyed by URL
     ├── category_changes.json   # Manual category overrides
-    └── url_overrides.json      # Link corrections and removals
+    ├── url_overrides.json      # Link corrections and removals
+    └── build_history.db        # Run history (SQLite) — accumulated, not regenerable
 ```
 
 `data/site_descriptions.json` is the scrape cache — keep it, or every build
@@ -367,6 +452,12 @@ re-visits every site in the export. It's updated in place on each run.
 **`site_extracts/` is gitignored** (`*.csv`), so CSV exports are not in the
 repo. Colleagues cloning this will need an export from you before they can
 build.
+
+**`data/build_history.db` is committed, unlike the other generated files.** It
+is the one thing here that cannot be regenerated: `link_reports/` and
+`Build_History.html` can always be produced again, but a build that was never
+recorded is gone. Committing it also means the history survives a laptop, and
+follows the repo to whoever picks this up next.
 
 ---
 

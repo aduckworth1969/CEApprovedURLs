@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approved Sites — Build History</title>
+<style>
+  /* Palette tokens. Dark values are declared under both the OS media query and
+     the data-theme scope, so the in-page toggle wins either way. */
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --plane:          #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --deemphasis:     #898781;
+    --good:           #006300;
+    --critical:       #d03b3b;
+    --warning:        #fab219;
+    --wash:           rgba(42,120,214,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --plane:          #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --deemphasis:     #898781;
+      --good:           #0ca30c;
+      --critical:       #d03b3b;
+      --warning:        #fab219;
+      --wash:           rgba(57,135,229,0.12);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --plane:          #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --deemphasis:     #898781;
+    --good:           #0ca30c;
+    --critical:       #d03b3b;
+    --warning:        #fab219;
+    --wash:           rgba(57,135,229,0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: 0 16px 72px;
+    background: var(--plane);
+    color: var(--text-primary);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+
+  header.page { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; padding: 40px 0 8px; }
+  header.page .titles { flex: 1 1 320px; min-width: 0; }
+  h1 { margin: 0 0 6px; font-size: 26px; font-weight: 650; letter-spacing: -0.01em; }
+  .subtitle { margin: 0; color: var(--text-secondary); font-size: 14px; }
+
+  button.theme {
+    flex: 0 0 auto; background: var(--surface-1); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px;
+    font: inherit; font-size: 13px; cursor: pointer;
+  }
+  button.theme:hover { color: var(--text-primary); }
+
+  section { margin-top: 32px; }
+  h2 {
+    margin: 0 0 4px; font-size: 13px; font-weight: 650; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .section-note { margin: 0 0 14px; color: var(--text-secondary); font-size: 13.5px; max-width: 70ch; }
+
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+
+  /* Hero + stat tiles */
+  .hero-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch; }
+  .hero { flex: 1 1 240px; display: flex; flex-direction: column; justify-content: center; }
+  .hero .label { color: var(--text-secondary); font-size: 13.5px; margin-bottom: 2px; }
+  .hero .value { font-size: 54px; font-weight: 650; line-height: 1.05; letter-spacing: -0.02em; }
+  .hero .meta { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(146px, 1fr)); gap: 14px; flex: 3 1 460px; }
+  @media (min-width: 720px) { .hero-row > .tiles { grid-template-columns: repeat(2, 1fr); } }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .tile .label { color: var(--text-secondary); font-size: 12.5px; margin-bottom: 3px; }
+  .tile .value { font-size: 25px; font-weight: 640; line-height: 1.15; }
+  .tile .delta { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+  .up   { color: var(--good); }
+  .down { color: var(--critical); }
+  .flat { color: var(--text-muted); }
+
+  /* Charts */
+  .chart-card { position: relative; }
+  figure { margin: 0; }
+  figcaption { color: var(--text-secondary); font-size: 13px; margin: 0 0 12px; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 14px 0 0; padding: 0; list-style: none; }
+  .legend li { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-secondary); }
+  .legend .key { width: 18px; height: 3px; border-radius: 2px; flex: 0 0 auto; }
+  .legend .key.dot { width: 9px; height: 9px; border-radius: 50%; }
+
+  .tooltip {
+    position: absolute; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 11px; font-size: 12.5px; min-width: 132px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.14); z-index: 5;
+  }
+  .tooltip .tt-date { color: var(--text-secondary); font-size: 11.5px; margin-bottom: 3px; }
+  .tooltip .tt-row { display: flex; align-items: baseline; gap: 7px; }
+  .tooltip .tt-val { font-weight: 650; font-size: 15px; color: var(--text-primary); }
+  .tooltip .tt-name { color: var(--text-secondary); }
+  .tooltip .tt-scope { color: var(--text-muted); font-size: 11.5px; margin-top: 3px; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  caption { text-align: left; color: var(--text-secondary); font-size: 13px; padding-bottom: 10px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--gridline); white-space: nowrap; }
+  th {
+    font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 600; border-bottom-color: var(--baseline);
+  }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.wrap-cell { white-space: normal; min-width: 230px; }
+  .url { color: var(--text-secondary); font-size: 12.5px; word-break: break-all; }
+
+  /* share bar inside the category table: one hue, magnitude only */
+  .bar-track { display: block; width: 100%; min-width: 70px; height: 6px; background: var(--gridline); border-radius: 3px; }
+  .bar-fill { display: block; height: 6px; background: var(--series-1); border-radius: 3px; }
+
+  details.more { margin-top: 12px; }
+  details.more > summary {
+    cursor: pointer; color: var(--text-secondary); font-size: 13px;
+    padding: 5px 0; list-style: revert;
+  }
+  details.more > summary:hover { color: var(--text-primary); }
+
+  .pill {
+    display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--text-muted); vertical-align: 1px;
+  }
+  .empty { color: var(--text-secondary); font-size: 13.5px; margin: 0; }
+
+  footer.page {
+    margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--gridline);
+    color: var(--text-secondary); font-size: 13px;
+  }
+  footer.page ul { margin: 8px 0 0; padding-left: 20px; }
+  footer.page li { margin-bottom: 6px; max-width: 78ch; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    button.theme { display: none; }
+    .card, .tile { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <div class="titles">
+      <h1>Approved Sites — Build History</h1>
+      <p class="subtitle">12 builds recorded, 28 Oct 2025 to 25 Sep 2026. Current scope: education rows only.</p>
+    </div>
+    <button class="theme" type="button" id="theme-toggle" aria-live="polite">Theme: system</button>
+  </header>
+
+  <section aria-label="Current totals">
+    <div class="hero-row">
+      <div class="card hero">
+        <div class="label">Approved sites on the current page</div>
+        <div class="value">97</div>
+        <div class="meta">0 since the build of 16 Sep 2026, 11:46</div>
+      </div>
+      <div class="tiles">
+        <div class="tile">
+          <div class="label">Change since previous build</div>
+          <div class="value">0</div>
+          <div class="delta flat">since 16 Sep 2026, 11:46</div>
+        </div>
+        <div class="tile">
+          <div class="label">Categories</div>
+          <div class="value">13</div>
+          <div class="delta ">on the current page</div>
+        </div>
+        <div class="tile">
+          <div class="label">Sites added</div>
+          <div class="value">0</div>
+          <div class="delta flat">since 16 Sep 2026, 11:46</div>
+        </div>
+        <div class="tile">
+          <div class="label">Sites removed</div>
+          <div class="value">0</div>
+          <div class="delta flat">since 16 Sep 2026, 11:46</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Growth over time">
+    <h2>Growth over time</h2>
+    <p class="section-note">-6 sites since 16 Sep 2026, 08:58, across 5 builds on the current scope.</p>
+    <div class="card chart-card">
+      <figure data-chart="growth">
+        <figcaption>Sites published per build. The axis starts at zero, and the line breaks where the page&#39;s scope changed.</figcaption>
+        <svg class="chart" viewBox="0 0 760 300" role="img"
+             aria-label="Sites published per build. The axis starts at zero, and the line breaks where the page&#39;s scope changed.">
+        <line x1="48" y1="258.0" x2="734" y2="258.0" stroke="var(--gridline)" stroke-width="1"/>
+        <text x="39" y="262.0" text-anchor="end" font-size="11" fill="var(--text-muted)" style="font-variant-numeric:tabular-nums">0</text>
+        <line x1="48" y1="178.0" x2="734" y2="178.0" stroke="var(--gridline)" stroke-width="1"/>
+        <text x="39" y="182.0" text-anchor="end" font-size="11" fill="var(--text-muted)" style="font-variant-numeric:tabular-nums">50</text>
+        <line x1="48" y1="98.0" x2="734" y2="98.0" stroke="var(--gridline)" stroke-width="1"/>
+        <text x="39" y="102.0" text-anchor="end" font-size="11" fill="var(--text-muted)" style="font-variant-numeric:tabular-nums">100</text>
+        <line x1="48" y1="18.0" x2="734" y2="18.0" stroke="var(--gridline)" stroke-width="1"/>
+        <text x="39" y="22.0" text-anchor="end" font-size="11" fill="var(--text-muted)" style="font-variant-numeric:tabular-nums">150</text>
+        <line x1="48" y1="258" x2="734" y2="258" stroke="var(--baseline)" stroke-width="1"/>
+        <text x="48.0" y="276" text-anchor="start" font-size="11" fill="var(--text-muted)">28 Oct 25</text>
+        <text x="172.7" y="276" text-anchor="middle" font-size="11" fill="var(--text-muted)">9 Dec 25</text>
+        <text x="297.5" y="276" text-anchor="middle" font-size="11" fill="var(--text-muted)">11 Dec 25</text>
+        <text x="422.2" y="276" text-anchor="middle" font-size="11" fill="var(--text-muted)">9 Jul 26</text>
+        <text x="546.9" y="276" text-anchor="middle" font-size="11" fill="var(--text-muted)">16 Sep 26</text>
+        <text x="734.0" y="276" text-anchor="end" font-size="11" fill="var(--text-muted)">25 Sep 26</text>
+        <line x1="453.4" y1="18" x2="453.4" y2="258" stroke="var(--baseline)" stroke-width="1"/>
+        <text x="459.4" y="29" text-anchor="start" font-size="10.5" fill="var(--text-muted)">IncarEducation filter added</text>
+        <polyline points="48.0,80.4 110.4,64.4 172.7,54.8 235.1,114.0 297.5,114.0 359.8,82.0 422.2,38.8" fill="none" stroke="var(--deemphasis)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="48.0" cy="80.4" r="4" fill="var(--deemphasis)" stroke="var(--surface-1)" stroke-width="2"/>
+        <circle cx="110.4" cy="64.4" r="4" fill="var(--deemphasis)" stroke="var(--surface-1)" stroke-width="2"/>
+        <circle cx="172.7" cy="54.8" r="4" fill="var(--deemphasis)" stroke="var(--surface-1)" stroke-width="2"/>
+        <circle cx="235.1" cy="114.0" r="4" fill="var(--deemphasis)" stroke="var(--surface-1)" stroke-width="2"/>
+        <circle cx="297.5" cy="114.0" r="4" fill="var(--deemphasis)" stroke="var(--surface-1)" stroke-width="2"/>
+        <circle cx="359.8" cy="82.0" r="4" fill="var(--deemphasis)" stroke="var(--surface-1)" stroke-width="2"/>
+        <circle cx="422.2" cy="38.8" r="4" fill="var(--deemphasis)" stroke="var(--surface-1)" stroke-width="2"/>
+        <polyline points="484.5,93.2 546.9,96.4 609.3,99.6 671.6,102.8 734.0,102.8" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="484.5" cy="93.2" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/>
+        <circle cx="546.9" cy="96.4" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/>
+        <circle cx="609.3" cy="99.6" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/>
+        <circle cx="671.6" cy="102.8" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/>
+        <circle cx="734.0" cy="102.8" r="4" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2"/>
+        <text x="725.0" y="92.8" text-anchor="end" font-size="13" font-weight="650" fill="var(--text-primary)">97</text>
+        <line class="crosshair" x1="0" y1="18" x2="0" y2="258" stroke="var(--baseline)" stroke-width="1" style="opacity:0"/>
+        <circle class="focus-dot" cx="-99" cy="-99" r="6" fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="2" style="opacity:0"/>
+        <circle class="hit" data-i="0" cx="48.0" cy="80.4" r="14" fill="transparent" tabindex="0" role="button" aria-label="28 Oct 2025, 10:34: 111 sites on the page"/>
+        <circle class="hit" data-i="1" cx="110.4" cy="64.4" r="14" fill="transparent" tabindex="0" role="button" aria-label="5 Nov 2025, 11:07: 121 sites on the page"/>
+        <circle class="hit" data-i="2" cx="172.7" cy="54.8" r="14" fill="transparent" tabindex="0" role="button" aria-label="9 Dec 2025, 16:37: 127 sites on the page"/>
+        <circle class="hit" data-i="3" cx="235.1" cy="114.0" r="14" fill="transparent" tabindex="0" role="button" aria-label="9 Dec 2025, 17:52: 90 sites on the page"/>
+        <circle class="hit" data-i="4" cx="297.5" cy="114.0" r="14" fill="transparent" tabindex="0" role="button" aria-label="11 Dec 2025, 13:48: 90 sites on the page"/>
+        <circle class="hit" data-i="5" cx="359.8" cy="82.0" r="14" fill="transparent" tabindex="0" role="button" aria-label="27 Feb 2026, 10:53: 110 sites on the page"/>
+        <circle class="hit" data-i="6" cx="422.2" cy="38.8" r="14" fill="transparent" tabindex="0" role="button" aria-label="9 Jul 2026, 09:36: 137 sites on the page"/>
+        <circle class="hit" data-i="7" cx="484.5" cy="93.2" r="14" fill="transparent" tabindex="0" role="button" aria-label="16 Sep 2026, 08:58: 103 sites on the page"/>
+        <circle class="hit" data-i="8" cx="546.9" cy="96.4" r="14" fill="transparent" tabindex="0" role="button" aria-label="16 Sep 2026, 09:11: 101 sites on the page"/>
+        <circle class="hit" data-i="9" cx="609.3" cy="99.6" r="14" fill="transparent" tabindex="0" role="button" aria-label="16 Sep 2026, 09:30: 99 sites on the page"/>
+        <circle class="hit" data-i="10" cx="671.6" cy="102.8" r="14" fill="transparent" tabindex="0" role="button" aria-label="16 Sep 2026, 11:46: 97 sites on the page"/>
+        <circle class="hit" data-i="11" cx="734.0" cy="102.8" r="14" fill="transparent" tabindex="0" role="button" aria-label="25 Sep 2026, 07:02: 97 sites on the page"/>
+        </svg>
+        <div class="tooltip" role="status" aria-live="polite">
+          <div class="tt-date"></div>
+          <div class="tt-row"><span class="tt-val"></span><span class="tt-name"></span></div>
+          <div class="tt-scope"></div>
+        </div>
+        <script type="application/json">[{"x": 48.0, "y": 80.4, "color": "var(--deemphasis)", "label": "28 Oct 2025, 10:34", "value": "111", "unit": "sites on the page", "scope": "Scope: full approved whitelist"}, {"x": 110.4, "y": 64.4, "color": "var(--deemphasis)", "label": "5 Nov 2025, 11:07", "value": "121", "unit": "sites on the page", "scope": "Scope: full approved whitelist"}, {"x": 172.7, "y": 54.8, "color": "var(--deemphasis)", "label": "9 Dec 2025, 16:37", "value": "127", "unit": "sites on the page", "scope": "Scope: full approved whitelist"}, {"x": 235.1, "y": 114.0, "color": "var(--deemphasis)", "label": "9 Dec 2025, 17:52", "value": "90", "unit": "sites on the page", "scope": "Scope: full approved whitelist"}, {"x": 297.5, "y": 114.0, "color": "var(--deemphasis)", "label": "11 Dec 2025, 13:48", "value": "90", "unit": "sites on the page", "scope": "Scope: full approved whitelist"}, {"x": 359.8, "y": 82.0, "color": "var(--deemphasis)", "label": "27 Feb 2026, 10:53", "value": "110", "unit": "sites on the page", "scope": "Scope: full approved whitelist"}, {"x": 422.2, "y": 38.8, "color": "var(--deemphasis)", "label": "9 Jul 2026, 09:36", "value": "137", "unit": "sites on the page", "scope": "Scope: full approved whitelist"}, {"x": 484.5, "y": 93.2, "color": "var(--series-1)", "label": "16 Sep 2026, 08:58", "value": "103", "unit": "sites on the page", "scope": "Scope: education rows only"}, {"x": 546.9, "y": 96.4, "color": "var(--series-1)", "label": "16 Sep 2026, 09:11", "value": "101", "unit": "sites on the page", "scope": "Scope: education rows only"}, {"x": 609.3, "y": 99.6, "color": "var(--series-1)", "label": "16 Sep 2026, 09:30", "value": "99", "unit": "sites on the page", "scope": "Scope: education rows only"}, {"x": 671.6, "y": 102.8, "color": "var(--series-1)", "label": "16 Sep 2026, 11:46", "value": "97", "unit": "sites on the page", "scope": "Scope: education rows only"}, {"x": 734.0, "y": 102.8, "color": "var(--series-1)", "label": "25 Sep 2026, 07:02", "value": "97", "unit": "sites on the page", "scope": "Scope: education rows only"}]</script>
+      </figure>
+      <ul class="legend">
+        <li><span class="key" style="background:var(--series-1)"></span> Education only (current scope)</li>
+        <li><span class="key" style="background:var(--deemphasis)"></span> Full approved whitelist (earlier scope)</li>
+      </ul>
+    </div>
+  </section>
+
+  <section aria-label="Sites by category">
+    <h2>By category</h2>
+    <p class="section-note">Thirteen categories is past the point where colours stay tellable apart, so this is a table.</p>
+    <div class="card table-wrap">
+      <table>
+        <caption>Sites per category on the build of 25 Sep 2026, 07:02, and the change since 16 Sep 2026, 11:46.</caption>
+        <thead><tr><th>Category</th><th class="num">Sites</th><th class="num">Change</th><th>Share</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Education</td>
+            <td class="num">28</td>
+            <td class="num"><span class="up">+1</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:100.0%"></span></span></td>
+          </tr>
+          <tr>
+            <td>Programming</td>
+            <td class="num">16</td>
+            <td class="num"><span class="down">-3</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:57.1%"></span></span></td>
+          </tr>
+          <tr>
+            <td>Government</td>
+            <td class="num">12</td>
+            <td class="num"><span class="down">-1</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:42.9%"></span></span></td>
+          </tr>
+          <tr>
+            <td>Math</td>
+            <td class="num">8</td>
+            <td class="num"><span class="flat">—</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:28.6%"></span></span></td>
+          </tr>
+          <tr>
+            <td>News</td>
+            <td class="num">8</td>
+            <td class="num"><span class="flat">—</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:28.6%"></span></span></td>
+          </tr>
+          <tr>
+            <td>Other</td>
+            <td class="num">7</td>
+            <td class="num"><span class="up">+1</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:25.0%"></span></span></td>
+          </tr>
+          <tr>
+            <td>Business</td>
+            <td class="num">4</td>
+            <td class="num"><span class="flat">—</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:14.3%"></span></span></td>
+          </tr>
+          <tr>
+            <td>Testing</td>
+            <td class="num">4</td>
+            <td class="num"><span class="up">+1</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:14.3%"></span></span></td>
+          </tr>
+          <tr>
+            <td>Technology</td>
+            <td class="num">3</td>
+            <td class="num"><span class="flat">—</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:10.7%"></span></span></td>
+          </tr>
+          <tr>
+            <td>History</td>
+            <td class="num">2</td>
+            <td class="num"><span class="flat">—</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:7.1%"></span></span></td>
+          </tr>
+          <tr>
+            <td>Language</td>
+            <td class="num">2</td>
+            <td class="num"><span class="flat">—</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:7.1%"></span></span></td>
+          </tr>
+          <tr>
+            <td>Support</td>
+            <td class="num">2</td>
+            <td class="num"><span class="up">+1</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:7.1%"></span></span></td>
+          </tr>
+          <tr>
+            <td>Science</td>
+            <td class="num">1</td>
+            <td class="num"><span class="flat">—</span></td>
+            <td style="width:34%"><span class="bar-track"><span class="bar-fill" style="width:3.6%"></span></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-label="What changed">
+    <h2>What changed</h2>
+    <p class="section-note">Between the build of 16 Sep 2026, 11:46 and
+      25 Sep 2026, 07:02. Sites are matched by address, ignoring
+      <code>www.</code>, scheme and trailing slashes, so a site whose listed address was
+      merely respelled between exports does not read as one removal plus one addition.</p>
+    <div class="card">
+      <p class="empty"><strong>Added (0)</strong></p>
+      <p class="empty"><strong>Removed (0)</strong></p>
+      <p style="margin:16px 0 4px"><strong>Re-categorised (7)</strong></p>
+        <ul>
+          <li>Build Your Stax — Programming &rarr; Other</li>
+          <li>CareerCruising — Programming &rarr; Education</li>
+          <li>Khan Academy — Programming &rarr; Education</li>
+          <li>NRF Foundation - RISE UP Platform — Government &rarr; Education</li>
+          <li>Quizlet — Programming &rarr; Testing</li>
+          <li>SBCTC — Education &rarr; Support</li>
+          <li>W3 Schools — Education &rarr; Programming</li>
+        </ul>
+
+    </div>
+  </section>
+
+
+  <section aria-label="Link health">
+    <h2>Link health</h2>
+    <p class="section-note">From the check of 16 Sep 2026, 11:55, which tested
+      97 links and found 6 needing attention. Checked from a staff
+      network, not from inside a facility.</p>
+    <div class="tiles" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+        <div class="tile">
+          <div class="label">Working</div>
+          <div class="value">81</div>
+          <div class="delta up">reachable as listed</div>
+        </div>
+        <div class="tile">
+          <div class="label">Broken</div>
+          <div class="value">2</div>
+          <div class="delta down">a student hits a dead link</div>
+        </div>
+        <div class="tile">
+          <div class="label">Redirecting off-host</div>
+          <div class="value">4</div>
+          <div class="delta down">may need whitelisting</div>
+        </div>
+        <div class="tile">
+          <div class="label">Blocked to automation</div>
+          <div class="value">10</div>
+          <div class="delta ">not breakage — verify by hand</div>
+        </div>
+    </div>
+    <p class="section-note" style="margin-top:12px">A trend line appears here once a second check has been recorded.</p>
+    <div class="card table-wrap" style="margin-top:14px">
+      <table>
+        <caption>Every link flagged by the most recent check, with how long it has been
+          flagged without interruption.</caption>
+        <thead><tr><th>Site</th><th>Finding</th><th>Detail</th><th>Flagged since</th>
+          <th class="num">Checks</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="wrap-cell">CareerCruising<br><span class="url">https://careercruising.com</span></td>
+            <td>moved</td>
+            <td class="wrap-cell">redirects to public.careercruising.com</td>
+            <td>16 Sep 2026</td>
+            <td class="num">1</td>
+          </tr>
+          <tr>
+            <td class="wrap-cell">Ecasas<br><span class="url">http://www.ecasas.org/</span></td>
+            <td>server error</td>
+            <td class="wrap-cell">HTTP 500 — host answered with a server error</td>
+            <td>16 Sep 2026</td>
+            <td class="num">1</td>
+          </tr>
+          <tr>
+            <td class="wrap-cell">GED<br><span class="url">https://app.ged.com/managerLogin</span></td>
+            <td>moved</td>
+            <td class="wrap-cell">redirects to app-web.ged.com</td>
+            <td>16 Sep 2026</td>
+            <td class="num">1</td>
+          </tr>
+          <tr>
+            <td class="wrap-cell">Magic School<br><span class="url">https://magicschool.com/</span></td>
+            <td>client error</td>
+            <td class="wrap-cell">HTTP 404 on every variant</td>
+            <td>16 Sep 2026</td>
+            <td class="num">1</td>
+          </tr>
+          <tr>
+            <td class="wrap-cell">Portal 2 Learn<br><span class="url">https://courses.portal2learn.com/</span></td>
+            <td>moved</td>
+            <td class="wrap-cell">redirects to landing.portal2learn.com</td>
+            <td>16 Sep 2026</td>
+            <td class="num">1</td>
+          </tr>
+          <tr>
+            <td class="wrap-cell">Worksource Washington<br><span class="url">https://www.worksourcewa.com/</span></td>
+            <td>moved</td>
+            <td class="wrap-cell">redirects to worksource.my.site.com</td>
+            <td>16 Sep 2026</td>
+            <td class="num">1</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+
+  <section aria-label="Every recorded run">
+    <h2>Every recorded run</h2>
+    <p class="section-note">The full record behind the charts above — the table view of everything plotted.</p>
+    <div class="card table-wrap">
+      <table>
+        <caption>Builds. &ldquo;Distinct&rdquo; is filled in only where it differs from the published total.</caption>
+        <thead><tr><th>Built</th><th class="num">Sites</th><th class="num">Change</th><th class="num">Distinct</th><th class="num">Categories</th><th>Scope</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>28 Oct 2025, 10:34</td>
+            <td class="num">111</td>
+            <td class="num"></td>
+            <td class="num">110</td>
+            <td class="num">11</td>
+            <td>full whitelist</td>
+            <td class="wrap-cell">a291ee1:approved_websites.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>5 Nov 2025, 11:07</td>
+            <td class="num">121</td>
+            <td class="num"><span class="up">+10</span></td>
+            <td class="num">120</td>
+            <td class="num">11</td>
+            <td>full whitelist</td>
+            <td class="wrap-cell">d6a25c1:approved_websites.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>9 Dec 2025, 16:37</td>
+            <td class="num">127</td>
+            <td class="num"><span class="up">+6</span></td>
+            <td class="num">126</td>
+            <td class="num">11</td>
+            <td>full whitelist</td>
+            <td class="wrap-cell">99215c8:index.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>9 Dec 2025, 17:52</td>
+            <td class="num">90</td>
+            <td class="num"><span class="down">-37</span></td>
+            <td class="num">89</td>
+            <td class="num">11</td>
+            <td>full whitelist</td>
+            <td class="wrap-cell">af69c12:index.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>11 Dec 2025, 13:48</td>
+            <td class="num">90</td>
+            <td class="num"><span class="flat">—</span></td>
+            <td class="num">89</td>
+            <td class="num">12</td>
+            <td>full whitelist</td>
+            <td class="wrap-cell">ff84577:index.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>27 Feb 2026, 10:53</td>
+            <td class="num">110</td>
+            <td class="num"><span class="up">+20</span></td>
+            <td class="num">109</td>
+            <td class="num">11</td>
+            <td>full whitelist</td>
+            <td class="wrap-cell">local_backups/approved_websites.backup_20260709_084509.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>9 Jul 2026, 09:36</td>
+            <td class="num">137</td>
+            <td class="num"><span class="up">+27</span></td>
+            <td class="num"></td>
+            <td class="num">13</td>
+            <td>full whitelist</td>
+            <td class="wrap-cell">33652ae:index.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>16 Sep 2026, 08:58</td>
+            <td class="num">103</td>
+            <td class="num"><span class="down">-34</span></td>
+            <td class="num">101</td>
+            <td class="num">13</td>
+            <td>IncarEducation</td>
+            <td class="wrap-cell">4147c05:Approved_Websites.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>16 Sep 2026, 09:11</td>
+            <td class="num">101</td>
+            <td class="num"><span class="down">-2</span></td>
+            <td class="num">99</td>
+            <td class="num">13</td>
+            <td>IncarEducation</td>
+            <td class="wrap-cell">fe43742:Approved_Websites.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>16 Sep 2026, 09:30</td>
+            <td class="num">99</td>
+            <td class="num"><span class="down">-2</span></td>
+            <td class="num">97</td>
+            <td class="num">13</td>
+            <td>IncarEducation</td>
+            <td class="wrap-cell">b70fd38:Approved_Websites.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>16 Sep 2026, 11:46</td>
+            <td class="num">97</td>
+            <td class="num"><span class="down">-2</span></td>
+            <td class="num"></td>
+            <td class="num">13</td>
+            <td>IncarEducation</td>
+            <td class="wrap-cell">Approved_Websites.html <span class="pill">reconstructed</span></td>
+          </tr>
+          <tr>
+            <td>25 Sep 2026, 07:02</td>
+            <td class="num">97</td>
+            <td class="num"><span class="flat">—</span></td>
+            <td class="num"></td>
+            <td class="num">13</td>
+            <td>IncarEducation</td>
+            <td class="wrap-cell">site_extracts/OSN URL Filtering.csv </td>
+          </tr>
+        </tbody>
+      </table>
+      <table style="margin-top:26px">
+        <caption>Link checks.</caption>
+        <thead><tr><th>Checked</th><th class="num">Links</th><th class="num">Working</th>
+          <th class="num">Broken</th><th class="num">Off-host</th>
+          <th class="num">Blocked</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>16 Sep 2026, 11:55</td>
+            <td class="num">97</td>
+            <td class="num">81</td>
+            <td class="num">2</td>
+            <td class="num">4</td>
+            <td class="num">10</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="page">
+    <strong>How to read this</strong>
+    <ul>
+      <li>11 of 12 builds are marked <span class="pill">reconstructed</span>. Their counts were read back from pages those builds generated — committed copies and local backups — rather than measured while the build ran. The numbers are the builds' own; only the manner of recording differs.</li>
+      <li>The page's scope changed on 16 Sep 2026, when it began building only rows DOC tags <code>IncarEducation</code>. Earlier builds covered the whole approved whitelist, so the drop from 137 to 103 sites is a narrowing of scope, not sites being withdrawn. The line is broken there for that reason, and totals either side are not comparable.</li>
+      <li>Some earlier builds published the same site twice under two spellings of its address. Where that happened the run table shows a lower &ldquo;distinct&rdquo; count beside the published total.</li>
+      <li>Link checks run from a staff network, not from inside a facility. A site reachable here can still be blocked by the facility filter, and an internal-only host can fail here yet work there. <em>Blocked to automation</em> is counted separately from broken for that reason — those hosts answered, they just refuse automated requests.</li>
+      <li>Every figure in the charts is also in the tables, so nothing here depends on hovering.</li>
+    </ul>
+    <p style="margin-top:16px">Generated 25 Sep 2026, 07:03 from data/build_history.db.</p>
+  </footer>
+
+</div>
+
+<script>
+/* Theme toggle: system -> light -> dark. Stored per browser. */
+(function () {
+  var KEY = 'history-theme', order = ['system', 'light', 'dark'];
+  var btn = document.getElementById('theme-toggle');
+  function read() { try { return localStorage.getItem(KEY) || 'system'; } catch (e) { return 'system'; } }
+  function apply(pref) {
+    if (pref === 'system') { document.documentElement.removeAttribute('data-theme'); }
+    else { document.documentElement.setAttribute('data-theme', pref); }
+    if (btn) { btn.textContent = 'Theme: ' + pref; }
+  }
+  apply(read());
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = order[(order.indexOf(read()) + 1) % order.length];
+      try { localStorage.setItem(KEY, next); } catch (e) {}
+      apply(next);
+    });
+  }
+})();
+
+/* Crosshair + tooltip for the line charts.
+
+   The tooltip enhances; it never gates. Every value it shows is also in the
+   "Every recorded run" table below, so nothing here is reachable only by
+   hovering. Keyboard focus on a point shows the same readout as the pointer. */
+(function () {
+  document.querySelectorAll('[data-chart]').forEach(function (fig) {
+    var svg = fig.querySelector('svg.chart');
+    var tip = fig.querySelector('.tooltip');
+    var raw = fig.querySelector('script[type="application/json"]');
+    if (!svg || !tip || !raw) { return; }
+
+    var points;
+    try { points = JSON.parse(raw.textContent); } catch (e) { return; }
+    if (!points.length) { return; }
+
+    var rule = svg.querySelector('.crosshair');
+    var halo = svg.querySelector('.focus-dot');
+
+    function show(i, clientX, clientY) {
+      var p = points[i];
+      if (!p) { return; }
+      var box = fig.getBoundingClientRect();
+      var rect = svg.getBoundingClientRect();
+      var scale = rect.width / svg.viewBox.baseVal.width;
+
+      if (rule) {
+        rule.setAttribute('x1', p.x); rule.setAttribute('x2', p.x);
+        rule.style.opacity = 1;
+      }
+      if (halo) {
+        halo.setAttribute('cx', p.x); halo.setAttribute('cy', p.y);
+        halo.setAttribute('fill', p.color);
+        halo.style.opacity = 1;
+      }
+
+      /* Labels come from the database; insert as text, never as markup. */
+      tip.querySelector('.tt-date').textContent = p.label;
+      tip.querySelector('.tt-val').textContent = p.value;
+      tip.querySelector('.tt-name').textContent = p.unit;
+      var scopeEl = tip.querySelector('.tt-scope');
+      scopeEl.textContent = p.scope || '';
+      scopeEl.style.display = p.scope ? '' : 'none';
+
+      var px = (typeof clientX === 'number')
+        ? clientX - box.left
+        : rect.left - box.left + p.x * scale;
+      var py = (typeof clientY === 'number')
+        ? clientY - box.top
+        : rect.top - box.top + p.y * scale;
+
+      tip.style.opacity = 1;
+      var w = tip.offsetWidth, h = tip.offsetHeight;
+      var left = Math.min(Math.max(px - w / 2, 6), fig.clientWidth - w - 6);
+      var top = py - h - 14;
+      if (top < 4) { top = py + 18; }
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+    }
+
+    function hide() {
+      tip.style.opacity = 0;
+      if (rule) { rule.style.opacity = 0; }
+      if (halo) { halo.style.opacity = 0; }
+    }
+
+    function nearest(clientX) {
+      var rect = svg.getBoundingClientRect();
+      var vb = svg.viewBox.baseVal;
+      var x = (clientX - rect.left) / rect.width * vb.width;
+      var best = 0, bestD = Infinity;
+      for (var i = 0; i < points.length; i++) {
+        var d = Math.abs(points[i].x - x);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      return best;
+    }
+
+    svg.addEventListener('pointermove', function (e) {
+      var i = nearest(e.clientX);
+      show(i, e.clientX, points[i] ? undefined : e.clientY);
+    });
+    svg.addEventListener('pointerleave', hide);
+
+    /* Keyboard parity: each point is focusable and reports the same values. */
+    svg.querySelectorAll('.hit').forEach(function (el) {
+      var i = parseInt(el.getAttribute('data-i'), 10);
+      el.addEventListener('focus', function () { show(i); });
+      el.addEventListener('blur', hide);
+      el.addEventListener('pointerenter', function (e) { show(i, e.clientX, e.clientY); });
+    });
+  });
+})();
+</script>
+</body>
+</html>

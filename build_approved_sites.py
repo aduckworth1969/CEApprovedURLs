@@ -18,6 +18,11 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
+import history
+import history_backfill
+import trend_report
+from urlkeys import normalize_url, url_key
+
 # Try to use tqdm for a nice progress bar, fall back gracefully if not installed
 try:
     from tqdm import tqdm  # type: ignore
@@ -263,38 +268,15 @@ category_keywords = {
 # ---------------------------------------------------------------------------
 # Generic helpers
 # ---------------------------------------------------------------------------
-def normalize_url(raw: str) -> str:
-    """Normalize URL by adding https:// if no scheme is present."""
-    raw = str(raw or "").strip()
-    if not raw:
-        return ""
-    if not raw.lower().startswith(("http://", "https://")):
-        raw = "https://" + raw
-    parsed = urlparse(raw)
-    if not parsed.netloc and parsed.path:
-        return "https://" + parsed.path
-    return parsed.geturl()
-
-
 def escape_html(s: str) -> str:
     import html as html_mod
     return html_mod.escape(str(s), quote=False)
 
 
+
 # ---------------------------------------------------------------------------
 # URL overrides
 # ---------------------------------------------------------------------------
-def url_key(url: str) -> str:
-    """
-    Matching key for a URL, so an override written one way still matches the
-    export written another: scheme, "www.", case and trailing slash all ignored.
-    """
-    s = str(url or "").strip().lower()
-    s = re.sub(r"^https?://", "", s)
-    s = re.sub(r"^www\.", "", s)
-    return s.rstrip("/")
-
-
 def load_url_overrides() -> tuple[dict, dict]:
     """
     Load URL corrections, keyed for matching. Returns (replace, remove).
@@ -1553,6 +1535,26 @@ def main(argv=None):
              f"mentions '{CATEGORY_FILTER}'.",
     )
 
+    # Run history. Every build and every --check-links run is recorded to
+    # data/build_history.db, which is what makes the trend report possible.
+    parser.add_argument(
+        "--trends",
+        action="store_true",
+        help=f"Write the trend report ({trend_report.OUTPUT}) from the recorded run "
+             f"history and exit, without building or checking anything.",
+    )
+    parser.add_argument(
+        "--no-history",
+        action="store_true",
+        help="Don't record this run in the history database.",
+    )
+    parser.add_argument(
+        "--backfill-history",
+        action="store_true",
+        help="Seed the history from past builds found on disk and in git, then exit. "
+             "Safe to re-run; runs already recorded are left alone.",
+    )
+
     # Favicons: default = embed favicons.
     parser.add_argument(
         "--no-embed-favicons",
@@ -1566,6 +1568,43 @@ def main(argv=None):
         parser.error("--report and --no-report only apply to --check-links.")
     if args.report and args.no_report:
         parser.error("--report and --no-report contradict each other.")
+    if args.trends and args.check_links:
+        parser.error("--trends reports on past runs; it cannot be combined with --check-links.")
+
+    # Both of these work purely from recorded history, so neither needs a CSV,
+    # a template, or a network.
+    if args.backfill_history:
+        print("Seeding run history from past builds on disk and in git...\n")
+        summary = history_backfill.backfill(
+            check_classes=CHECK_CLASSES,
+            broken_classes=CHECK_BROKEN,
+        )
+        print(
+            f"\nRecorded {summary['builds']} build(s) and {summary['checks']} link check(s)."
+        )
+        if summary["builds_already_present"] or summary["checks_already_present"]:
+            print(
+                f"Left alone: {summary['builds_already_present']} build(s) and "
+                f"{summary['checks_already_present']} link check(s) already recorded."
+            )
+        if summary["pages_unparseable"]:
+            print(
+                f"Skipped {summary['pages_unparseable']} HTML file(s) that this builder "
+                f"did not generate."
+            )
+        print(f"\nNow run --trends to write {trend_report.OUTPUT}.")
+        return
+
+    if args.trends:
+        summary = trend_report.render(broken_classes=CHECK_BROKEN)
+        print(
+            f"Wrote {summary['output']} from {summary['builds']} build(s) and "
+            f"{summary['link_checks']} link check(s)."
+        )
+        print(f"Latest build: {summary['latest_total']} approved sites.")
+        if summary["problems"]:
+            print(f"{summary['problems']} link(s) flagged by the most recent check.")
+        return
 
     template_path = Path(args.template)
     if not template_path.exists():
@@ -1580,6 +1619,10 @@ def main(argv=None):
 
     df = pd.read_csv(csv_path, encoding="utf-8-sig")
     df.columns = [str(c).strip() for c in df.columns]
+    # Kept for the history record: whether the export could be filtered at all,
+    # and how many rows it offered before anything was dropped.
+    original_columns = set(df.columns)
+    total_export_rows = len(df)
 
     missing = []
     if TITLE_COLUMN not in df.columns:
@@ -1601,6 +1644,7 @@ def main(argv=None):
         print(f"Using '{url_col}' as the site URL column.")
 
     # Keep education rows only (unless the export doesn't say, or --all-categories).
+    rows_skipped_category = 0
     if args.all_categories:
         print("Category filter disabled: building every row in the export.")
     elif CATEGORY_COLUMN in df.columns:
@@ -1608,6 +1652,7 @@ def main(argv=None):
             CATEGORY_FILTER, case=False, na=False
         )
         dropped = int((~keep).sum())
+        rows_skipped_category = dropped
         df = df[keep]
         print(f"Category filter '{CATEGORY_FILTER}': kept {len(df)} rows, skipped {dropped}.")
         if df.empty:
@@ -1694,6 +1739,19 @@ def main(argv=None):
         if written:
             print(f"Wrote {written} suggested override(s) to {URL_SUGGESTIONS_FILE}.")
             print(f"Review them, then merge the ones you want into {URL_OVERRIDES_FILE}.")
+        # As with a build: the reports are already on disk by now, so a problem
+        # recording the run is worth reporting but not worth failing over.
+        if not args.no_history:
+            try:
+                history.record_link_check(
+                    results=results,
+                    broken_classes=CHECK_BROKEN,
+                    source_csv=str(csv_path),
+                )
+                print(f"Recorded this check in {history.DB_PATH}.")
+            except Exception as e:
+                print(f"Warning: could not record this check in {history.DB_PATH}: {e}")
+
         print(
             "\nNote: checked from this machine, not from inside a facility. A site "
             "reachable here\nmay still be blocked by the facility filter, and an "
@@ -1829,6 +1887,38 @@ def main(argv=None):
         print("Favicons: embedded as data: URLs (default).")
     else:
         print("Favicons: fetching DISABLED.")
+
+    # Record the run, so the counts above become a series rather than something
+    # that scrolls off the terminal. A failure here must not lose a page that is
+    # already written to disk, so it is reported and otherwise ignored.
+    if not args.no_history:
+        recorded = [
+            (name, url, category)
+            for category, entries in categorized.items()
+            for name, url, _ in entries
+        ]
+        try:
+            history.record_build(
+                sites=recorded,
+                counts={
+                    "export_rows": total_export_rows,
+                    "rows_skipped_category": rows_skipped_category,
+                    "duplicates_collapsed": duplicate_rows,
+                    "removed_by_override": removed_by_override,
+                    "replaced_by_override": replaced_by_override,
+                    "descriptions_scraped": scraped_count,
+                    "descriptions_cached": cached_count,
+                },
+                source_csv=str(csv_path),
+                output_file=args.output,
+                category_filter="" if args.all_categories else (
+                    CATEGORY_FILTER if CATEGORY_COLUMN in original_columns else ""
+                ),
+            )
+            print(f"History: recorded this build in {history.DB_PATH}.")
+            print(f"         Run --trends to refresh {trend_report.OUTPUT}.")
+        except Exception as e:
+            print(f"Warning: could not record this build in {history.DB_PATH}: {e}")
 
 
 if __name__ == "__main__":
