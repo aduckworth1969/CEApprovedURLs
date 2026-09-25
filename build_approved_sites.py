@@ -15,7 +15,6 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse, urljoin, urlunparse
 
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
@@ -278,9 +277,36 @@ category_keywords = {
 # ---------------------------------------------------------------------------
 # Generic helpers
 # ---------------------------------------------------------------------------
+def looks_like_url(raw: str) -> bool:
+    """
+    Whether a CSV cell is an address rather than a note someone typed in the
+    URL column.
+
+    DOC exports carry rows whose URL field is a sentence — "Link is in place
+    for mandatory entry... it is not a valid website.", "Open Website sort and
+    filter menu". Without this they were normalized into https://Link%20is...,
+    put on the page as live links, and scraped, which is how four entries keyed
+    by prose ended up in the description cache.
+
+    Deliberately loose: the job is to reject prose, not to validate hostnames.
+    """
+    raw = str(raw or "").strip()
+    if not raw or any(c.isspace() for c in raw):
+        return False
+    host = urlparse(normalize_url(raw)).netloc
+    return "." in host and not host.startswith(".") and not host.endswith(".")
+
+
 def escape_html(s: str) -> str:
-    import html as html_mod
-    return html_mod.escape(str(s), quote=False)
+    """
+    Escape a value for HTML, quotes included.
+
+    Quotes matter because this output goes into attributes as well as text —
+    href, src, the favicon data: URL — where an unescaped double quote closes
+    the attribute early and the rest of the tag becomes markup. In a text node
+    the escaped form renders identically, so one helper covers both safely.
+    """
+    return html.escape(str(s), quote=True)
 
 
 def write_text_atomic(path: Path, text: str, encoding: str = "utf-8") -> None:
@@ -863,7 +889,7 @@ def build_nav_html(categorized: dict[str, list]) -> str:
         safe = escape_html(cat)
         parts.append(
             f'''            <li class="category-item">
-              <a href="#{safe}" class="category-link" onclick="scrollToCategory('{safe}'); return false;">
+              <a href="#{safe}" class="category-link" onclick="scrollToCategory(this.hash.slice(1)); return false;">
                 <span class="category-name">{safe}</span>
                 <span class="category-count">{count}</span>
               </a>
@@ -876,12 +902,26 @@ def build_sections_html(categorized: dict[str, list], favicons: FaviconFetcher) 
     cats = sorted(categorized.keys())
     sections: list[str] = []
 
+    # Fetching the icons is the slow part of this function — up to three
+    # network requests per site — so it reports progress. The build loop used
+    # to print a line per site saying favicons were enabled, which described a
+    # flag rather than any work, while the work itself happened here in
+    # silence.
+    total = sum(len(v) for v in categorized.values())
+    if favicons.enabled and total:
+        print(f"\nFetching favicons for {total} site(s)...")
+    done = 0
+
     for cat in cats:
         safe_cat = escape_html(cat)
         site_items: list[str] = []
 
         for name, url, desc in categorized[cat]:
             fav_src = favicons.for_url(url)
+            if favicons.enabled:
+                done += 1
+                msg = f"[{done}/{total}] {'icon' if fav_src else 'no icon'}: {name}"
+                tqdm.write(msg) if HAS_TQDM else print(msg)
             img_attrs = 'class="site-favicon" alt="" aria-hidden="true"'
             if fav_src:
                 img_html = f'<img {img_attrs} src="{escape_html(fav_src)}">'
@@ -1112,16 +1152,15 @@ def check_site(name: str, url: str, timeout: int = CHECK_TIMEOUT) -> dict:
             )
             return result
 
-    # Nothing worked; report the most informative failure we saw.
-    if primary["status"] in BLOCKED_STATUSES:
+    # Nothing worked. Only two states can reach this point: the checks above
+    # have already returned for a blocked status, a 5xx and every 4xx other
+    # than 404 and 410, so the listed URL either answered 404/410 or did not
+    # answer at all.
+    if primary["status"]:
         result.update(
-            klass="blocked",
-            detail=f"HTTP {primary['status']} — host answered but refused an automated request",
+            klass="client_error",
+            detail=f"HTTP {primary['status']} on every variant",
         )
-    elif primary["status"] and primary["status"] >= 500:
-        result.update(klass="server_error", detail=f"HTTP {primary['status']} on every variant")
-    elif primary["status"] and primary["status"] >= 400:
-        result.update(klass="client_error", detail=f"HTTP {primary['status']} on every variant")
     else:
         result.update(klass="unreachable", detail=f"{primary['error']} on every variant")
     return result
@@ -1277,7 +1316,7 @@ def link_report_lines(results: list[dict]) -> list[str]:
                 lines.append(f"  {'':<{width}}  -> suggested: {r['suggest']}")
             lines.append(f"  {'':<{width}}  ACTION: {recommended_action(r)}")
 
-    dupes = find_duplicates(results)
+    dupes = find_duplicates(results)  # idempotent; also annotates dupe_of
     if dupes:
         same_page = [g for g in dupes if g["kind"] == "same page"]
         same_host = [g for g in dupes if g["kind"] == "same host"]
@@ -1399,7 +1438,8 @@ def write_link_suggestions(results: list[dict], path: str) -> int:
 # ---------------------------------------------------------------------------
 # Row resolution
 # ---------------------------------------------------------------------------
-def resolve_sites(df, url_replace: dict, url_remove: dict, announce: bool = True):
+def resolve_sites(rows: list[dict], url_replace: dict, url_remove: dict,
+                  announce: bool = True):
     """
     Turn CSV rows into the (name, url, row) list the page is built from.
 
@@ -1410,20 +1450,20 @@ def resolve_sites(df, url_replace: dict, url_remove: dict, announce: bool = True
     --check-links uses this too, so the checker tests exactly the links the
     page would carry rather than a second interpretation of the same rules.
     """
-    sites: list[tuple[str, str, object]] = []
+    sites: list[tuple[str, str, dict]] = []
     removed = replaced = duplicates = 0
     seen: set[str] = set()
     kept_by_key: dict[str, str] = {}
-    total = len(df)
+    total = len(rows)
 
     def say(msg: str):
         if not announce:
             return
         tqdm.write(msg) if HAS_TQDM else print(msg)
 
-    for idx, row in enumerate(df.itertuples(index=False), start=1):
-        name = str(row.Title).strip()
-        raw_url = str(row.Website_Url).strip()
+    for idx, row in enumerate(rows, start=1):
+        name = str(row.get(TITLE_COLUMN) or "").strip()
+        raw_url = str(row.get("Website_Url") or "").strip()
 
         if not name or not raw_url:
             say(f"[{idx}/{total}] Skipping empty row")
@@ -1431,6 +1471,10 @@ def resolve_sites(df, url_replace: dict, url_remove: dict, announce: bool = True
 
         if "removed" in name.lower() or "removed" in raw_url.lower():
             say(f"[{idx}/{total}] Skipping removed site: {name}")
+            continue
+
+        if not looks_like_url(raw_url):
+            say(f"[{idx}/{total}] Skipping {name}: not a URL ({raw_url[:60]!r})")
             continue
 
         url = normalize_url(raw_url)
@@ -1483,6 +1527,38 @@ def csv_columns(path: Path) -> list[str]:
     except Exception:
         pass
     return []
+
+
+def read_csv_rows(path: Path) -> tuple[list[dict], list[str]]:
+    """
+    Read a CSV into a list of row dicts, plus its column names.
+
+    This was pandas, which earned its place twice: this read and one boolean
+    mask. The stdlib does both, and dropping it takes pandas and numpy out of
+    the install for a script that never indexes, joins or aggregates anything.
+
+    Header names are stripped, because DOC exports pad some of them. A blank
+    cell arrives as an empty string rather than pandas' NaN, which also fixes
+    a row with no Title reading as the string "nan" and passing the
+    not-empty check downstream.
+    """
+    with open(path, "r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.reader(f)
+        try:
+            header = [str(c).strip() for c in next(reader)]
+        except StopIteration:
+            return [], []
+        rows = [
+            {header[i]: (cell if i < len(cell_row) else "")
+             for i, cell in enumerate(cell_row[: len(header)])}
+            for cell_row in reader
+            if any(str(c).strip() for c in cell_row)
+        ]
+    # Fill columns a short row omitted, so every row has every key.
+    for row in rows:
+        for col in header:
+            row.setdefault(col, "")
+    return rows, header
 
 
 def missing_columns(path: Path) -> list[str]:
@@ -1726,45 +1802,46 @@ def main(argv=None):
     else:
         csv_path = choose_csv(Path(CSV_DIR))
 
-    df = pd.read_csv(csv_path, encoding="utf-8-sig")
-    df.columns = [str(c).strip() for c in df.columns]
+    rows, columns = read_csv_rows(csv_path)
     # Kept for the history record: whether the export could be filtered at all,
     # and how many rows it offered before anything was dropped.
-    original_columns = set(df.columns)
-    total_export_rows = len(df)
+    original_columns = set(columns)
+    total_export_rows = len(rows)
 
     missing = []
-    if TITLE_COLUMN not in df.columns:
+    if TITLE_COLUMN not in columns:
         missing.append(TITLE_COLUMN)
-    url_col = next((c for c in URL_COLUMNS if c in df.columns), None)
+    url_col = next((c for c in URL_COLUMNS if c in columns), None)
     if url_col is None:
         missing.append(" or ".join(URL_COLUMNS))
     if missing:
         raise SystemExit(
             f"{csv_path} is missing required column(s): {', '.join(missing)}.\n"
-            f"Found: {', '.join(df.columns)}"
+            f"Found: {', '.join(columns)}"
         )
 
-    # Work with one canonical URL column downstream. Renaming onto an existing
-    # column would leave two columns of the same name, so drop the other first.
+    # Work with one canonical URL column downstream. Copying onto Website_Url
+    # overwrites whatever was there, which is what the old drop-then-rename did.
     if url_col != "Website_Url":
-        df = df.drop(columns=["Website_Url"], errors="ignore")
-        df = df.rename(columns={url_col: "Website_Url"})
+        for row in rows:
+            row["Website_Url"] = row.get(url_col, "")
         print(f"Using '{url_col}' as the site URL column.")
 
     # Keep education rows only (unless the export doesn't say, or --all-categories).
     rows_skipped_category = 0
     if args.all_categories:
         print("Category filter disabled: building every row in the export.")
-    elif CATEGORY_COLUMN in df.columns:
-        keep = df[CATEGORY_COLUMN].astype(str).str.contains(
-            CATEGORY_FILTER, case=False, na=False
-        )
-        dropped = int((~keep).sum())
+    elif CATEGORY_COLUMN in columns:
+        needle = CATEGORY_FILTER.lower()
+        kept = [
+            r for r in rows
+            if needle in str(r.get(CATEGORY_COLUMN) or "").lower()
+        ]
+        dropped = len(rows) - len(kept)
         rows_skipped_category = dropped
-        df = df[keep]
-        print(f"Category filter '{CATEGORY_FILTER}': kept {len(df)} rows, skipped {dropped}.")
-        if df.empty:
+        rows = kept
+        print(f"Category filter '{CATEGORY_FILTER}': kept {len(rows)} rows, skipped {dropped}.")
+        if not rows:
             raise SystemExit(
                 f"No rows in {csv_path} have a '{CATEGORY_COLUMN}' containing "
                 f"'{CATEGORY_FILTER}'. Use --all-categories to build the export as-is."
@@ -1793,18 +1870,13 @@ def main(argv=None):
     embed_favicons = not args.no_embed_favicons
 
     categorized: dict[str, list] = defaultdict(list)
-    total_rows = len(df)
-    has_desc_col = "Website_Description" in df.columns
+    has_desc_col = "Website_Description" in columns
 
-    # Some simple counters for summary
     scraped_count = 0
     cached_count = 0
     disabled_count = 0
-    removed_by_override = 0
-    replaced_by_override = 0
-    seen_url_keys: set[str] = set()
 
-    sites, resolve_stats = resolve_sites(df, url_replace, url_remove)
+    sites, resolve_stats = resolve_sites(rows, url_replace, url_remove)
     removed_by_override = resolve_stats["removed"]
     duplicate_rows = resolve_stats["duplicates"]
     replaced_by_override = resolve_stats["replaced"]
@@ -1812,8 +1884,7 @@ def main(argv=None):
 
     if args.check_links:
         results = run_link_check(sites)
-        find_duplicates(results)  # annotates dupe_of before any output
-        print_link_report(results)
+        print_link_report(results)  # annotates dupe_of on the way through
 
         if args.report:
             if Path(args.report).suffix.lower() == ".csv":
@@ -1878,7 +1949,7 @@ def main(argv=None):
     for idx, (name, url, row) in iterator:
         row_desc = ""
         if has_desc_col:
-            row_desc = str(getattr(row, "Website_Description", "") or "")
+            row_desc = str(row.get("Website_Description") or "")
 
         # Ask the same question the picker will ask, so the line printed here
         # describes the work that is about to happen.
@@ -1915,15 +1986,26 @@ def main(argv=None):
         # Use description-aware categorization (with manual overrides)
         category = get_category_for_site(name, url, desc, category_changes)
 
-        if embed_favicons:
-            # We do not fetch here (that happens in build_sections_html),
-            # but this makes it clear that favicon embedding is enabled.
-            if HAS_TQDM:
-                tqdm.write(f"{msg_prefix} (Favicons enabled) {name}")
-            else:
-                print(f"{msg_prefix} (Favicons enabled) {name}")
-
         categorized[category].append((name, url, desc))
+
+    # Drop cache entries whose key was never an address. Four of these existed,
+    # keyed by prose out of a bad export ("Link is in place for mandatory
+    # entry..."); looks_like_url now stops new ones arriving, and this clears
+    # any already there. Safe to do unconditionally: no real site can ever have
+    # one of these keys.
+    junk_keys = [k for k in descriptions if not looks_like_url(k)]
+    for key in junk_keys:
+        del descriptions[key]
+    if junk_keys:
+        print(f"\nDropped {len(junk_keys)} cached description(s) not keyed by a URL:")
+        for key in junk_keys:
+            print(f"  {key[:72]}")
+
+    # Entries for sites this build didn't touch are only reported, never
+    # removed. With the category filter on, "not in this build" means "not an
+    # education row", not "not needed" — pruning here would quietly throw away
+    # the reentry and vet-program descriptions.
+    stale = [k for k in descriptions if k not in {url for _, url, _ in sites}]
 
     # Persist JSON sidecars
     save_descriptions(descriptions)
@@ -1973,6 +2055,11 @@ def main(argv=None):
         f"Description summary: scraped={scraped_count}, cached={cached_count}, "
         f"fallback={disabled_count}"
     )
+    if stale:
+        print(
+            f"  ({len(stale)} cached description(s) are for sites not in this build — "
+            f"kept, since the category filter alone explains most of them.)"
+        )
 
     if duplicate_rows:
         print(f"Duplicates: {duplicate_rows} row(s) skipped as the same site listed twice.")
@@ -2016,6 +2103,13 @@ def main(argv=None):
                 },
                 source_csv=str(csv_path),
                 output_file=args.output,
+                # The same stamp the page itself carries, not "now". Recording
+                # happens after the favicon pass, which can run for minutes, so
+                # a fresh timestamp here would not match the one written into
+                # the page — and --backfill-history, which reads that stamp
+                # back out of generated pages, would record this very build a
+                # second time as a reconstructed duplicate.
+                ran_at=f"{last_updated}:00",
                 category_filter="" if args.all_categories else (
                     CATEGORY_FILTER if CATEGORY_COLUMN in original_columns else ""
                 ),

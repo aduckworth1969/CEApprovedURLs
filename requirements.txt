@@ -1,8 +1,5 @@
 # Dependencies for build_approved_sites.py
 
-# CSV reading
-pandas
-
 # Fetching site descriptions and favicons
 requests
 beautifulsoup4

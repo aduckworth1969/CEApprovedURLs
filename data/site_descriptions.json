@@ -27,14 +27,6 @@
     "status": "ok",
     "timestamp": "2025-12-09T16:31:32.935328"
   },
-  "https://This Website was removed from Incarcerated Education Access on 2/26/2025 per IN557917": {
-    "description": "Educational resource (This Website was removed from Incarcerated Education Access on 2)",
-    "title": "Academia - REMOVED per IN557917",
-    "meta_description": "",
-    "status": "error",
-    "error": "Failed to parse: 'this%20website%20was%20removed%20from%20incarcerated%20education%20access%20on%202', label empty or too long",
-    "timestamp": "2025-10-28T10:08:43.276986"
-  },
   "https://accuplacer.org": {
     "description": "<h1>ACCUPLACER Platform for Institutions – The College Board</h1> <br/>Login to the platform. Access is granted to accredited, degree-granting institutions and public departments of national, state and system educational governance.",
     "title": "ACCUPLACER Platform for Institutions – The College Board",
@@ -391,14 +383,6 @@
     "meta_description": "",
     "status": "error",
     "timestamp": "2025-12-09T16:33:05.976828"
-  },
-  "https://Link is in place for mandatory entry... it is not a valid website.": {
-    "description": "Educational resource (Link is in place for mandatory entry... it is not a valid website.)",
-    "title": "IncarWorkReleaseUsers Categories",
-    "meta_description": "",
-    "status": "error",
-    "error": "Failed to parse: 'link%20is%20in%20place%20for%20mandatory%20entry...%20it%20is%20not%20a%20valid%20website.', label empty or too long",
-    "timestamp": "2025-10-28T10:11:13.448577"
   },
   "https://indoorpet.osu.edu/": {
     "description": "IndoorPetOSU – Educational resource (indoorpet.osu.edu)",
@@ -778,14 +762,6 @@
     "status": "ok",
     "timestamp": "2026-09-16T09:10:58.430398"
   },
-  "https://Open Website sort and filter menu": {
-    "description": "Open Title sort and filter menu - Educational resource (Open Website sort and filter menu)",
-    "title": "Open Title sort and filter menu",
-    "meta_description": "",
-    "status": "error",
-    "error": "HTTPSConnectionPool(host='open%20website%20sort%20and%20filter%20menu', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"<urllib3.connection.HTTPSConnection object at 0x1231f1940>: Failed to resolve 'open%20website%20sort%20and%20filter%20menu' ([Errno 8] nodename nor servname provided, or not known)\"))",
-    "timestamp": "2025-11-05T11:04:55.933223"
-  },
   "https://docs.blender.org/": {
     "description": "blender (docs) – Educational resource (docs.blender.org)",
     "title": "blender (docs)",
@@ -876,13 +852,6 @@
     "meta_description": "W3Schools offers free online tutorials, references and exercises in all the major languages of the web. Covering popular subjects like HTML, CSS, JavaScript, Python, SQL, Java, and many, many more.",
     "status": "ok",
     "timestamp": "2026-09-16T09:10:43.564350"
-  },
-  "https://accessAllowedByCategoryAndExplicitWhitelist": {
-    "description": "IncarWorkReleaseUsers Categories – Educational resource (accessAllowedByCategoryAndExplicitWhitelist)",
-    "title": "IncarWorkReleaseUsers Categories",
-    "meta_description": "",
-    "status": "error",
-    "timestamp": "2025-12-09T16:33:55.622342"
   },
   "https://phet.colorado.edu/": {
     "description": "PhET - Interactive Simulations – Educational resource (phet.colorado.edu)",

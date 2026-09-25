@@ -77,8 +77,11 @@ mid-build.
 Extra columns — `ID`, `Associated URLs`, `Authorizing SR` — are ignored, and a
 leading BOM is handled. `URL Category` is used to filter (see below).
 
-Rows are skipped when the title or URL is blank, or when either contains
-"removed".
+Rows are skipped when the title or URL is blank, when either contains
+"removed", or when the URL column holds a note rather than an address — DOC
+exports carry a few, such as "Link is in place for mandatory entry... it is not
+a valid website.". Those used to be turned into live links on the page and
+scraped for a description.
 
 **Duplicates are collapsed.** DOC lists some sites twice under separate
 whitelist IDs, differing only by a trailing slash or a `www.` prefix —
