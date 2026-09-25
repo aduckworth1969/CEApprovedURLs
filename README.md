@@ -120,8 +120,9 @@ filter entirely.
 |---|---|
 | `-o`, `--output` | Output file (default: `Approved_Websites.html`) |
 | `-t`, `--template` | Template file (default: `template.html`) |
-| `--descriptions-missing-only` | Only fetch descriptions for sites not already cached |
+| `--refresh-descriptions` | Re-scrape every description, replacing the cache (slow; discards hand edits) |
 | `--no-descriptions` | Don't fetch any descriptions; use the cache, then the CSV, then a generic fallback |
+| `--descriptions-missing-only` | Accepted for compatibility — this is the default |
 | `--no-embed-favicons` | Don't fetch or embed favicons |
 | `--all-categories` | Build every row, not just `IncarEducation` ones |
 | `--check-links` | Check every link and report problems, then exit without building |
@@ -131,33 +132,43 @@ filter entirely.
 | `--backfill-history` | Seed the history from past builds on disk and in git, then exit |
 | `--no-history` | Don't record this run in the history database |
 
-### Which one to use
+### Descriptions
 
-**For a normal rebuild, use `--descriptions-missing-only`:**
+**The plain command is the one you want**, for a normal rebuild:
 
 ```bash
-python build_approved_sites.py --descriptions-missing-only
+python build_approved_sites.py
 ```
 
-It reuses the cached descriptions and scrapes only sites it hasn't seen, so a
-rebuild takes a minute rather than the better part of an hour.
+It keeps the descriptions already in `data/site_descriptions.json` and scrapes
+only sites it has not seen, so a rebuild takes seconds rather than the better
+part of an hour.
 
-This matters beyond speed. The **default** re-scrapes every site and
-**overwrites `data/site_descriptions.json`**, discarding any hand-editing done
-to those descriptions. Use the bare command only when you actually want every
-description regenerated from scratch.
+To deliberately re-scrape everything — say a lot of sites have been redesigned
+since the cache was filled:
+
+```bash
+python build_approved_sites.py --refresh-descriptions
+```
+
+That one **replaces every cached description**, including any you have edited by
+hand, which is why it is no longer what the bare command does. It also takes
+roughly an hour, because each site is fetched with a polite pause between
+requests.
 
 For a quick check with no network at all — template edits, category tuning:
 
 ```bash
-python build_approved_sites.py --descriptions-missing-only --no-embed-favicons
+python build_approved_sites.py --no-descriptions --no-embed-favicons
 ```
+
+`--descriptions-missing-only` still works and still means what it says; it is
+simply the default now, so you no longer have to remember it.
 
 ### When a new export arrives
 
 1. Drop the CSV into `site_extracts/`.
-2. Run `python build_approved_sites.py --descriptions-missing-only` and press
-   Enter to take the newest file.
+2. Run `python build_approved_sites.py` and press Enter to take the newest file.
 3. Read the build output: it names any site dropped as "removed", every URL
    override applied, and any override that no longer matches anything.
 4. Commit the regenerated `Approved_Websites.html` and publish it.
@@ -170,6 +181,20 @@ python build_approved_sites.py --descriptions-missing-only --no-embed-favicons
 Each site is placed by keyword scoring against its URL (+3), title (+2) and
 description (+1), using the `category_keywords` lists near the top of
 `build_approved_sites.py`. No keyword match means `Other`.
+
+Keywords match **whole words**, not fragments, with plurals and common endings
+folded in — so `course` still matches "courses" and `support` still matches
+"supporting", but `lab` no longer matches "available" and `ui` no longer
+matches "building". A keyword containing punctuation or a space (`node.js`,
+`c++`, `k-12`, `stack overflow`) is matched literally instead, since splitting
+it into words would lose what makes it distinctive.
+
+This means you can add a short keyword without first checking that it isn't
+hiding inside some unrelated word. It also means an abbreviation no longer
+covers the word it abbreviates: `edu` matches "edu", not "education", so both
+are listed. Domains that run words together (`myopenmath.com`) have no word
+boundary to match on, so where that matters the domain itself is a keyword —
+as `wamap` and `freecodecamp` already were.
 
 To correct a single site without touching the keyword lists, add an entry to
 `data/category_changes.json`:

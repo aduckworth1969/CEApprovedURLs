@@ -2,6 +2,7 @@ import argparse
 import base64
 import csv
 import json
+import os
 import random
 import re
 import socket
@@ -94,7 +95,10 @@ category_keywords = {
 
     # General education: colleges, textbooks, libraries, curricula, etc.
     "Education": [
-        "edu", "school", "schools", "college", "university", "universities",
+        # "edu" used to match inside "education" and "educational" as a
+        # substring; whole-word matching needs the words themselves.
+        "edu", "education", "educational", "educator", "educators",
+        "school", "schools", "college", "university", "universities",
         "campus", "degree", "diploma", "high school", "k-12", "k12",
         "course", "courses", "curriculum", "class", "classes",
         "career school", "career and technical education",
@@ -122,7 +126,10 @@ category_keywords = {
 
     # Government, agencies, official .gov resources
     "Government": [
-        "gov", ".gov", "official site", "official website",
+        # As with "edu": "gov" was standing in for "government" by matching
+        # inside it.
+        "gov", "government", "governmental", ".gov",
+        "official site", "official website",
         "department of", "federal", "agency",
 
         # Agencies / programs present in the list
@@ -186,7 +193,10 @@ category_keywords = {
         "numerical", "quantitative", "quantitative biology",
         "quantitative finance", "phet", "simulations",
         "wolfram|alpha", "wolfram alpha",
-        "wamap", "pauls online math notes", "get sum math",
+        # Named like the other site-specific entries here: these domains run
+        # the words together, so no word boundary exists for "math" to match.
+        "wamap", "openmath", "myopenmath",
+        "pauls online math notes", "get sum math",
         "prison math project",
     ],
 
@@ -273,6 +283,32 @@ def escape_html(s: str) -> str:
     return html_mod.escape(str(s), quote=False)
 
 
+def write_text_atomic(path: Path, text: str, encoding: str = "utf-8") -> None:
+    """
+    Write a file by replacing it in one step, rather than truncating it first.
+
+    Two of the files this script writes are expensive to lose. The description
+    cache is roughly an hour of scraping, and the default build rewrites it
+    wholesale; the generated page is what students actually open. Writing in
+    place means a Ctrl-C, a full disk or a crash lands between the truncate and
+    the rewrite, leaving a half-written file where a good one used to be.
+
+    Writing to a temporary file in the same directory and renaming it over the
+    original avoids that: os.replace is atomic on a single filesystem, so the
+    old file survives intact until the new one is complete.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        with open(tmp, "w", encoding=encoding, newline="") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
+
 
 # ---------------------------------------------------------------------------
 # URL overrides
@@ -319,6 +355,31 @@ def load_category_changes():
         return []
 
 
+# Keywords are matched as whole words rather than as bare substrings. Plain
+# one-word keywords are checked against the text's tokens; anything carrying
+# punctuation or a space ("node.js", "c++", "k-12", "stack overflow") is
+# matched as a literal substring, because splitting it into tokens would throw
+# away exactly what makes it distinctive.
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
+
+# Endings stripped to give each token a stem, so "courses" still matches the
+# keyword "course" and "supporting" still matches "support". Substring matching
+# used to get this for free, along with every false positive below it; matching
+# the stem keeps the plurals without letting "lab" match "available".
+_SUFFIXES = ("es", "s", "ed", "ing", "al", "ic")
+
+
+def _tokens(text: str) -> set[str]:
+    """Every word in the text, plus a stem for each so inflections still match."""
+    words = _TOKEN_RE.findall(text)
+    out = set(words)
+    for word in words:
+        for suffix in _SUFFIXES:
+            if word.endswith(suffix) and len(word) - len(suffix) >= 3:
+                out.add(word[: -len(suffix)])
+    return out
+
+
 def categorize_auto(site_name: str, site_url: str, description: str | None) -> str:
     """
     Automatic categorization using a simple scoring system.
@@ -329,10 +390,21 @@ def categorize_auto(site_name: str, site_url: str, description: str | None) -> s
         * Title match:    +2
         * Description:    +1
     - Returns the category with the highest score, or 'Other' if no matches.
+
+    Matching is on whole words. Plain substring matching put short keywords
+    inside unrelated longer ones — "js" inside jstor.org, "lab" inside
+    collaborate, "api" inside capital, "sec" inside second — which filed sites
+    under categories nothing in them supported. Whole words also mean a keyword
+    can be added without first checking that it does not happen to be a
+    fragment of some other word.
     """
     text_title = (site_name or "").lower()
     text_url = (site_url or "").lower()
     text_desc = (description or "").lower()
+
+    tokens_title = _tokens(text_title)
+    tokens_url = _tokens(text_url)
+    tokens_desc = _tokens(text_desc)
 
     best_category = "Other"
     best_score = 0
@@ -341,11 +413,20 @@ def categorize_auto(site_name: str, site_url: str, description: str | None) -> s
         score = 0
         for keyword in keywords:
             kw = keyword.lower()
-            if kw in text_url:
+            if _TOKEN_RE.fullmatch(kw):
+                in_url, in_title, in_desc = (
+                    kw in tokens_url, kw in tokens_title, kw in tokens_desc,
+                )
+            else:
+                in_url, in_title, in_desc = (
+                    kw in text_url, kw in text_title, kw in text_desc,
+                )
+
+            if in_url:
                 score += 3
-            if kw in text_title:
+            if in_title:
                 score += 2
-            if kw in text_desc:
+            if in_desc:
                 score += 1
 
         if score > best_score:
@@ -396,11 +477,12 @@ def load_descriptions():
 
 
 def save_descriptions(descriptions: dict):
-    """Save site descriptions to JSON file."""
+    """Save site descriptions to JSON file, replacing it in one step."""
     try:
-        Path(DESCRIPTIONS_FILE).parent.mkdir(parents=True, exist_ok=True)
-        with open(DESCRIPTIONS_FILE, "w", encoding="utf-8") as f:
-            json.dump(descriptions, f, indent=2, ensure_ascii=False)
+        write_text_atomic(
+            Path(DESCRIPTIONS_FILE),
+            json.dumps(descriptions, indent=2, ensure_ascii=False),
+        )
     except Exception as e:
         print(f"Warning: Could not save descriptions file: {e}")
 
@@ -541,6 +623,32 @@ def analyze_website(url: str, site_name: str) -> dict:
         }
 
 
+def description_mode(
+    url: str,
+    descriptions_map: dict,
+    generate_missing: bool,
+    force_regen: bool,
+) -> str:
+    """
+    Where this site's description will come from: "scrape", "cached" or "fallback".
+
+    The build announces and counts the mode before doing the work, and
+    pick_description_for_site then does it. Both ask this function, so the line
+    the build prints cannot disagree with what it then does. They used to: the
+    loop tested only whether the URL was a key in the cache, while the picker
+    also required a description inside that entry, so an entry missing one was
+    announced as "Using cached description" and then scraped.
+    """
+    if force_regen:
+        return "scrape"
+
+    cached = descriptions_map.get(url)
+    if isinstance(cached, dict) and cached.get("description"):
+        return "cached"
+
+    return "scrape" if generate_missing else "fallback"
+
+
 def pick_description_for_site(
     site_name: str,
     url: str,
@@ -550,26 +658,18 @@ def pick_description_for_site(
     force_regen: bool,
 ) -> str:
     """
-    Decide which description to use / generate for a given site.
-    - If force_regen: always re-scrape.
-    - Else if URL already in descriptions_map: use cached.
-    - Else if generate_missing: scrape and store.
-    - Else: fall back to CSV description or generic fallback.
+    Get the description for a site, scraping it if that is the chosen mode.
+    Falls back to the CSV's own description, then to a generic line.
     """
-    key = url
+    mode = description_mode(url, descriptions_map, generate_missing, force_regen)
 
-    if force_regen:
+    if mode == "scrape":
         info = analyze_website(url, site_name)
-        descriptions_map[key] = info
+        descriptions_map[url] = info
         return info["description"]
 
-    if key in descriptions_map and "description" in descriptions_map[key]:
-        return descriptions_map[key]["description"]
-
-    if generate_missing:
-        info = analyze_website(url, site_name)
-        descriptions_map[key] = info
-        return info["description"]
+    if mode == "cached":
+        return descriptions_map[url]["description"]
 
     if row_desc and row_desc.strip():
         return row_desc.strip()
@@ -1497,17 +1597,26 @@ def main(argv=None):
         help="Output HTML file (default: Approved_Websites.html)",
     )
 
-    # Description behavior: default = do everything (regen all).
+    # Descriptions: the default scrapes only what is missing. Re-scraping
+    # everything is an explicit choice because it takes the better part of an
+    # hour and overwrites descriptions that may have been edited by hand.
     desc_group = parser.add_mutually_exclusive_group()
+    desc_group.add_argument(
+        "--refresh-descriptions",
+        action="store_true",
+        help="Re-scrape every site, replacing all cached descriptions. Slow, and it "
+             "discards any hand-edited text in data/site_descriptions.json.",
+    )
     desc_group.add_argument(
         "--no-descriptions",
         action="store_true",
-        help="Disable scraping: do not fetch any descriptions (use JSON/CSV/fallback only).",
+        help="Disable scraping entirely: use the cache, then the CSV, then a generic "
+             "fallback.",
     )
     desc_group.add_argument(
         "--descriptions-missing-only",
         action="store_true",
-        help="Only scrape descriptions for sites missing in the JSON (no regen of existing).",
+        help="Accepted for compatibility — this is now the default.",
     )
 
     parser.add_argument(
@@ -1674,17 +1783,11 @@ def main(argv=None):
     category_changes = load_category_changes()
     url_replace, url_remove = load_url_overrides()
 
-    # Default: do everything
-    force_regen = True
-    generate_missing = True
-
-    # If user disables or restricts descriptions:
-    if args.no_descriptions:
-        force_regen = False
-        generate_missing = False
-    elif args.descriptions_missing_only:
-        force_regen = False
-        generate_missing = True
+    # Default: fill in what is missing and leave cached descriptions alone.
+    # --descriptions-missing-only asks for exactly this, and is kept as a no-op
+    # so existing habits and scripts keep working.
+    force_regen = args.refresh_descriptions
+    generate_missing = not args.no_descriptions
 
     # Favicons: default embed, unless explicitly disabled
     embed_favicons = not args.no_embed_favicons
@@ -1777,20 +1880,19 @@ def main(argv=None):
         if has_desc_col:
             row_desc = str(getattr(row, "Website_Description", "") or "")
 
-        # Decide description mode for logging/counters
-        if args.no_descriptions:
-            desc_mode = "disabled"
-            disabled_count += 1
-        elif args.descriptions_missing_only and url in descriptions:
-            desc_mode = "cached"
+        # Ask the same question the picker will ask, so the line printed here
+        # describes the work that is about to happen.
+        desc_mode = description_mode(url, descriptions, generate_missing, force_regen)
+        if desc_mode == "cached":
             cached_count += 1
-        else:
-            desc_mode = "scrape"
+        elif desc_mode == "scrape":
             scraped_count += 1
+        else:
+            disabled_count += 1
 
         msg_prefix = f"[{idx}/{total_rows}]"
-        if desc_mode == "disabled":
-            msg = f"{msg_prefix} Descriptions disabled: {name}"
+        if desc_mode == "fallback":
+            msg = f"{msg_prefix} No description available: {name}"
         elif desc_mode == "cached":
             msg = f"{msg_prefix} Using cached description: {name}"
         else:
@@ -1856,18 +1958,21 @@ def main(argv=None):
         .replace("{{LAST_UPDATED}}", last_updated)
     )
 
-    Path(args.output).write_text(html_out, encoding="utf-8")
+    write_text_atomic(Path(args.output), html_out)
 
     print()
     print(f"Wrote {args.output} with {total_sites} sites across {total_categories} categories.")
     if args.no_descriptions:
-        print("Descriptions: scraping DISABLED (using existing JSON/CSV/fallback).")
-    elif args.descriptions_missing_only:
-        print("Descriptions: scraped ONLY for sites missing in JSON (existing cached kept).")
+        print("Descriptions: scraping DISABLED (cache, then CSV, then a generic line).")
+    elif args.refresh_descriptions:
+        print("Descriptions: re-scraped for ALL sites (--refresh-descriptions).")
     else:
-        print("Descriptions: regenerated for ALL sites (default).")
+        print("Descriptions: scraped only where missing; cached text kept (default).")
 
-    print(f"Description summary: scraped={scraped_count}, cached={cached_count}, disabled={disabled_count}")
+    print(
+        f"Description summary: scraped={scraped_count}, cached={cached_count}, "
+        f"fallback={disabled_count}"
+    )
 
     if duplicate_rows:
         print(f"Duplicates: {duplicate_rows} row(s) skipped as the same site listed twice.")
