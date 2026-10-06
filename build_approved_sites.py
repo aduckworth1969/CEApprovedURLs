@@ -38,6 +38,7 @@ CATEGORY_CHANGES_FILE = "data/category_changes.json"
 DESCRIPTIONS_FILE = "data/site_descriptions.json"
 URL_OVERRIDES_FILE = "data/url_overrides.json"
 URL_SUGGESTIONS_FILE = "data/url_overrides.suggested.json"
+EXCLUDED_SITES_FILE = "data/excluded_sites.json"
 
 # --check-links writes a timestamped report here on every run, in both formats,
 # so there is always something to send on and a history to compare against.
@@ -364,6 +365,59 @@ def load_url_overrides() -> tuple[dict, dict]:
 
     remove = {url_key(k): v for k, v in (raw.get("remove") or {}).items()}
     return replace, remove
+
+
+# ---------------------------------------------------------------------------
+# Excluded sites
+# ---------------------------------------------------------------------------
+def load_excluded_sites() -> dict[str, str]:
+    """
+    Load the sites kept off the page whatever DOC approves, keyed for matching.
+
+    Kept apart from the overrides' remove block on purpose. That block fixes
+    broken links and matches one exact address; this is a policy decision, so
+    it matches a whole host — DOC re-listing a site under a different path or
+    subdomain must not bring it back.
+
+    A file that exists but can't be read stops the build rather than warning:
+    carrying on would publish exactly the sites this file exists to withhold.
+    """
+    try:
+        with open(EXCLUDED_SITES_FILE, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        raise SystemExit(
+            f"Could not read {EXCLUDED_SITES_FILE}: {e}\n"
+            f"Fix the file before building, so excluded sites stay off the page."
+        )
+
+    return {
+        url_key(k): str(v or "")
+        for k, v in (raw.get("exclude") or {}).items()
+        if url_key(k)
+    }
+
+
+def excluded_by(url: str, excluded: dict[str, str]) -> str | None:
+    """
+    The exclusion entry that covers url, or None.
+
+    An entry with no path covers its host and every subdomain of it; one with a
+    path covers that path and everything beneath it on the same host.
+    """
+    key = url_key(url)
+    host, _, path = key.partition("/")
+    for entry in excluded:
+        e_host, _, e_path = entry.partition("/")
+        if host != e_host and not host.endswith("." + e_host):
+            continue
+        if not e_path:
+            return entry
+        if host == e_host and (path == e_path or path.startswith(e_path + "/")):
+            return entry
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -1439,19 +1493,21 @@ def write_link_suggestions(results: list[dict], path: str) -> int:
 # Row resolution
 # ---------------------------------------------------------------------------
 def resolve_sites(rows: list[dict], url_replace: dict, url_remove: dict,
-                  announce: bool = True):
+                  excluded: dict | None = None, announce: bool = True):
     """
     Turn CSV rows into the (name, url, row) list the page is built from.
 
     Applies, in order: skip blank rows, skip rows marked "removed", normalize
-    the URL, drop sites named in the overrides' remove block, and rewrite those
-    in its replace block.
+    the URL, drop excluded sites, drop sites named in the overrides' remove
+    block, and rewrite those in its replace block.
 
     --check-links uses this too, so the checker tests exactly the links the
     page would carry rather than a second interpretation of the same rules.
     """
     sites: list[tuple[str, str, dict]] = []
     removed = replaced = duplicates = 0
+    excluded = excluded or {}
+    excluded_hits: dict[str, list[str]] = defaultdict(list)
     seen: set[str] = set()
     kept_by_key: dict[str, str] = {}
     total = len(rows)
@@ -1479,6 +1535,15 @@ def resolve_sites(rows: list[dict], url_replace: dict, url_remove: dict,
 
         url = normalize_url(raw_url)
 
+        # Sites withheld from students whatever DOC approves. Checked before the
+        # overrides and again after them, so a URL correction can't route a
+        # site onto an excluded host.
+        entry = excluded_by(url, excluded)
+        if entry:
+            say(f"[{idx}/{total}] Excluding {name}: {excluded[entry]}")
+            excluded_hits[entry].append(name)
+            continue
+
         # Corrections for URLs that don't load as DOC exports them.
         key = url_key(url)
         seen.add(key)
@@ -1490,6 +1555,11 @@ def resolve_sites(rows: list[dict], url_replace: dict, url_remove: dict,
             say(f"[{idx}/{total}] URL override: {url} -> {url_replace[key]}")
             url = url_replace[key]
             replaced += 1
+            entry = excluded_by(url, excluded)
+            if entry:
+                say(f"[{idx}/{total}] Excluding {name}: {excluded[entry]}")
+                excluded_hits[entry].append(name)
+                continue
 
         # DOC lists some sites twice under separate whitelist IDs, differing
         # only by a trailing slash or a www prefix (epa.gov and liveabout.com
@@ -1512,6 +1582,7 @@ def resolve_sites(rows: list[dict], url_replace: dict, url_remove: dict,
         "replaced": replaced,
         "seen": seen,
         "duplicates": duplicates,
+        "excluded": dict(excluded_hits),
     }
 
 
@@ -1859,6 +1930,7 @@ def main(argv=None):
     descriptions = load_descriptions()
     category_changes = load_category_changes()
     url_replace, url_remove = load_url_overrides()
+    excluded_sites = load_excluded_sites()
 
     # Default: fill in what is missing and leave cached descriptions alone.
     # --descriptions-missing-only asks for exactly this, and is kept as a no-op
@@ -1876,11 +1948,12 @@ def main(argv=None):
     cached_count = 0
     disabled_count = 0
 
-    sites, resolve_stats = resolve_sites(rows, url_replace, url_remove)
+    sites, resolve_stats = resolve_sites(rows, url_replace, url_remove, excluded_sites)
     removed_by_override = resolve_stats["removed"]
     duplicate_rows = resolve_stats["duplicates"]
     replaced_by_override = resolve_stats["replaced"]
     seen_url_keys = resolve_stats["seen"]
+    excluded_hits = resolve_stats["excluded"]
 
     if args.check_links:
         results = run_link_check(sites)
@@ -2074,6 +2147,19 @@ def main(argv=None):
         )
         for k in unused:
             print(f"  Note: override '{k}' matched nothing in this export.")
+
+    if excluded_sites:
+        count = sum(len(v) for v in excluded_hits.values())
+        print(f"Excluded sites: {count} row(s) withheld ({EXCLUDED_SITES_FILE}).")
+        # Unlike a URL override, an unmatched exclusion is not stale: DOC may
+        # list the site again in a later export, and the entry must be there
+        # when it does. So this is reported, not flagged for cleanup.
+        for entry in sorted(excluded_sites):
+            names = excluded_hits.get(entry)
+            if names:
+                print(f"  {entry}: withheld {', '.join(names)}")
+            else:
+                print(f"  {entry}: not in this export")
 
     if embed_favicons:
         print("Favicons: embedded as data: URLs (default).")

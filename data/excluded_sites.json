@@ -1,0 +1,8 @@
+{
+  "_comment": "Sites kept off the page even though DOC approves them. DOC updates its whitelist slowly, so a site students should not reach can stay on it for months. Each key is a host, matched with any scheme, 'www.', path or subdomain: 'quizlet.com' also catches 'www.quizlet.com/join' and 'help.quizlet.com'. Listing a subdomain excludes only that subdomain. A key with a path ('example.com/staff') excludes that path and everything under it. The value is the reason, shown in the build output.",
+
+  "exclude": {
+    "quizlet.com": "Students should not have access. Excluded by Corrections Education 2026-10-06.",
+    "dl.correctionsed.com": "Students should not have access. Excluded by Corrections Education 2026-10-06."
+  }
+}

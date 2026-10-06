@@ -10,9 +10,9 @@ local web server on the education network).
 ## What it produces
 
 `Approved_Websites.html` — one file listing the DOC-approved sites tagged for
-education, grouped into categories, with favicons embedded as `data:` URLs. No
-external requests are made when a student opens it, so it works on a fully
-isolated network.
+education (less any on the [exclude list](#excluding-sites)), grouped into
+categories, with favicons embedded as `data:` URLs. No external requests are
+made when a student opens it, so it works on a fully isolated network.
 
 The page itself provides:
 
@@ -173,7 +173,10 @@ simply the default now, so you no longer have to remember it.
 1. Drop the CSV into `site_extracts/`.
 2. Run `python build_approved_sites.py` and press Enter to take the newest file.
 3. Read the build output: it names any site dropped as "removed", every URL
-   override applied, and any override that no longer matches anything.
+   override applied, any override that no longer matches anything, and each
+   site held back by the [exclude list](#excluding-sites). Look over what's new
+   while you're there — if DOC has approved something students shouldn't reach,
+   add it to the exclude list and build again.
 4. Commit the regenerated `Approved_Websites.html` and publish it.
 5. Run `python build_approved_sites.py --trends` to refresh the trend report.
 
@@ -215,6 +218,111 @@ To correct a single site without touching the keyword lists, add an entry to
 
 Overrides are matched on `site_name` **and** `site_url`, and only apply when
 `status` is `"applied"`.
+
+---
+
+## Excluding sites
+
+DOC updates its whitelist slowly, so a site students shouldn't reach can stay
+approved for months. The exclude list keeps such sites off the page, whatever
+the export says. It lives in `data/excluded_sites.json`:
+
+```json
+{
+  "_comment": "...",
+
+  "exclude": {
+    "quizlet.com": "Students should not have access. Excluded by Corrections Education 2026-10-06.",
+    "dl.correctionsed.com": "Students should not have access. Excluded by Corrections Education 2026-10-06."
+  }
+}
+```
+
+Each line under `"exclude"` is one site: the **address** on the left, the
+**reason** on the right. The reason is printed in the build output, so write
+who asked for it and when — whoever reads the file next will want to know.
+
+### Adding a site
+
+1. Open `data/excluded_sites.json` in any text editor.
+2. Add a line inside the `"exclude"` block, using the site's address with no
+   `https://` or `www.` — those are ignored anyway:
+
+   ```json
+   "exclude": {
+     "quizlet.com": "Students should not have access. Excluded by Corrections Education 2026-10-06.",
+     "dl.correctionsed.com": "Students should not have access. Excluded by Corrections Education 2026-10-06.",
+     "example.com": "Reason, who asked, and the date."
+   }
+   ```
+
+   Every line except the last ends with a comma, and both sides are in double
+   quotes. A missing comma is the usual mistake: the build stops with
+   `Expecting ',' delimiter: line 4`, and the comma belongs at the end of the
+   line *before* the one it names.
+3. Rebuild: `python build_approved_sites.py`.
+4. Check the end of the build output for the site (see below), then commit
+   `data/excluded_sites.json` together with the rebuilt `Approved_Websites.html`
+   and publish the page.
+
+### Removing an exclusion
+
+Delete the site's line — and the comma before it, if it was the last line —
+then rebuild, commit and publish as above. The site comes back only if DOC still
+approves it; the exclude list can withhold sites, never add them.
+
+### Checking it worked
+
+Every build ends with a summary of the list, entry by entry:
+
+```
+Excluded sites: 2 row(s) withheld (data/excluded_sites.json).
+  dl.correctionsed.com: withheld Corrections SED DL
+  quizlet.com: withheld Quizlet
+```
+
+and names each row as it is skipped:
+
+```
+[3/104] Excluding Corrections SED DL: Students should not have access. ...
+```
+
+An entry that shows `not in this export` matched nothing this time. **Leave it
+in place** — unlike a URL override that matches nothing, it is not stale. DOC
+may list the site again in a later export, and the entry needs to be there when
+it does.
+
+If the file can't be read — a missing comma, a stray quote — the build stops
+with an error instead of carrying on, because carrying on would publish exactly
+the sites the file exists to hold back. Fix it and run the build again.
+
+### What an entry matches
+
+An entry matches a **whole site**, more broadly than a URL override does, so DOC
+can't bring a site back by listing it a different way:
+
+| Entry | Excludes | Leaves alone |
+|---|---|---|
+| `quizlet.com` | `https://quizlet.com/`, `www.quizlet.com/join`, `help.quizlet.com` | `notquizlet.com`, `quizlet.co` |
+| `dl.correctionsed.com` | `dl.correctionsed.com`, anything under it | `correctionsed.com` |
+| `example.com/staff` | `example.com/staff`, `example.com/staff/login` | `example.com/`, `example.com/staffroom` |
+
+So: an address with no path takes the site and all its subdomains, never the
+parent site; an address with a path takes only that part of the site.
+
+`--check-links` skips excluded sites too, so they don't fill the link report.
+
+### What it doesn't do
+
+It hides a site from the page; it does not change what the facility filter
+allows. A student who types the address may still reach it. To block a site
+outright, ask DOC to remove it from the whitelist — and keep the entry here
+until a new export confirms they have.
+
+It is also separate from the `remove` list in `data/url_overrides.json` (see
+below). That list is for **broken** links and matches one exact address; this
+one is for sites students **shouldn't** reach. Use this one for those, so the
+reason stays clear and a re-listed variant can't slip through.
 
 ---
 
@@ -471,6 +579,7 @@ fetching entirely.
     ├── site_descriptions.json  # Cached descriptions, keyed by URL
     ├── category_changes.json   # Manual category overrides
     ├── url_overrides.json      # Link corrections and removals
+    ├── excluded_sites.json     # Sites kept off the page despite DOC approval
     └── build_history.db        # Run history (SQLite) — accumulated, not regenerable
 ```
 
