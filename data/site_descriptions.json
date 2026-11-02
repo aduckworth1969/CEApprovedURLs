@@ -1013,5 +1013,19 @@
     "meta_description": "",
     "status": "error",
     "timestamp": "2026-09-16T09:11:34.934347"
+  },
+  "https://edmonds.edu/": {
+    "description": "Edmonds College – Educational resource (edmonds.edu)",
+    "title": "Edmonds College",
+    "meta_description": "",
+    "status": "error",
+    "timestamp": "2026-10-02T14:12:41.814432"
+  },
+  "https://typenetwork.com/": {
+    "description": "Type Network – Educational resource (typenetwork.com)",
+    "title": "Type Network",
+    "meta_description": "",
+    "status": "ok",
+    "timestamp": "2026-10-02T14:12:44.262121"
   }
 }
