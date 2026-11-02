@@ -2,6 +2,7 @@ import argparse
 import base64
 import csv
 import json
+import os
 import random
 import re
 import socket
@@ -14,9 +15,13 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse, urljoin, urlunparse
 
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+
+import history
+import history_backfill
+import trend_report
+from urlkeys import normalize_url, url_key
 
 # Try to use tqdm for a nice progress bar, fall back gracefully if not installed
 try:
@@ -33,6 +38,7 @@ CATEGORY_CHANGES_FILE = "data/category_changes.json"
 DESCRIPTIONS_FILE = "data/site_descriptions.json"
 URL_OVERRIDES_FILE = "data/url_overrides.json"
 URL_SUGGESTIONS_FILE = "data/url_overrides.suggested.json"
+EXCLUDED_SITES_FILE = "data/excluded_sites.json"
 
 # --check-links writes a timestamped report here on every run, in both formats,
 # so there is always something to send on and a history to compare against.
@@ -89,7 +95,10 @@ category_keywords = {
 
     # General education: colleges, textbooks, libraries, curricula, etc.
     "Education": [
-        "edu", "school", "schools", "college", "university", "universities",
+        # "edu" used to match inside "education" and "educational" as a
+        # substring; whole-word matching needs the words themselves.
+        "edu", "education", "educational", "educator", "educators",
+        "school", "schools", "college", "university", "universities",
         "campus", "degree", "diploma", "high school", "k-12", "k12",
         "course", "courses", "curriculum", "class", "classes",
         "career school", "career and technical education",
@@ -117,7 +126,10 @@ category_keywords = {
 
     # Government, agencies, official .gov resources
     "Government": [
-        "gov", ".gov", "official site", "official website",
+        # As with "edu": "gov" was standing in for "government" by matching
+        # inside it.
+        "gov", "government", "governmental", ".gov",
+        "official site", "official website",
         "department of", "federal", "agency",
 
         # Agencies / programs present in the list
@@ -181,7 +193,10 @@ category_keywords = {
         "numerical", "quantitative", "quantitative biology",
         "quantitative finance", "phet", "simulations",
         "wolfram|alpha", "wolfram alpha",
-        "wamap", "pauls online math notes", "get sum math",
+        # Named like the other site-specific entries here: these domains run
+        # the words together, so no word boundary exists for "math" to match.
+        "wamap", "openmath", "myopenmath",
+        "pauls online math notes", "get sum math",
         "prison math project",
     ],
 
@@ -263,38 +278,68 @@ category_keywords = {
 # ---------------------------------------------------------------------------
 # Generic helpers
 # ---------------------------------------------------------------------------
-def normalize_url(raw: str) -> str:
-    """Normalize URL by adding https:// if no scheme is present."""
+def looks_like_url(raw: str) -> bool:
+    """
+    Whether a CSV cell is an address rather than a note someone typed in the
+    URL column.
+
+    DOC exports carry rows whose URL field is a sentence — "Link is in place
+    for mandatory entry... it is not a valid website.", "Open Website sort and
+    filter menu". Without this they were normalized into https://Link%20is...,
+    put on the page as live links, and scraped, which is how four entries keyed
+    by prose ended up in the description cache.
+
+    Deliberately loose: the job is to reject prose, not to validate hostnames.
+    """
     raw = str(raw or "").strip()
-    if not raw:
-        return ""
-    if not raw.lower().startswith(("http://", "https://")):
-        raw = "https://" + raw
-    parsed = urlparse(raw)
-    if not parsed.netloc and parsed.path:
-        return "https://" + parsed.path
-    return parsed.geturl()
+    if not raw or any(c.isspace() for c in raw):
+        return False
+    host = urlparse(normalize_url(raw)).netloc
+    return "." in host and not host.startswith(".") and not host.endswith(".")
 
 
 def escape_html(s: str) -> str:
-    import html as html_mod
-    return html_mod.escape(str(s), quote=False)
+    """
+    Escape a value for HTML, quotes included.
+
+    Quotes matter because this output goes into attributes as well as text —
+    href, src, the favicon data: URL — where an unescaped double quote closes
+    the attribute early and the rest of the tag becomes markup. In a text node
+    the escaped form renders identically, so one helper covers both safely.
+    """
+    return html.escape(str(s), quote=True)
+
+
+def write_text_atomic(path: Path, text: str, encoding: str = "utf-8") -> None:
+    """
+    Write a file by replacing it in one step, rather than truncating it first.
+
+    Two of the files this script writes are expensive to lose. The description
+    cache is roughly an hour of scraping, and the default build rewrites it
+    wholesale; the generated page is what students actually open. Writing in
+    place means a Ctrl-C, a full disk or a crash lands between the truncate and
+    the rewrite, leaving a half-written file where a good one used to be.
+
+    Writing to a temporary file in the same directory and renaming it over the
+    original avoids that: os.replace is atomic on a single filesystem, so the
+    old file survives intact until the new one is complete.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    try:
+        with open(tmp, "w", encoding=encoding, newline="") as f:
+            f.write(text)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 # ---------------------------------------------------------------------------
 # URL overrides
 # ---------------------------------------------------------------------------
-def url_key(url: str) -> str:
-    """
-    Matching key for a URL, so an override written one way still matches the
-    export written another: scheme, "www.", case and trailing slash all ignored.
-    """
-    s = str(url or "").strip().lower()
-    s = re.sub(r"^https?://", "", s)
-    s = re.sub(r"^www\.", "", s)
-    return s.rstrip("/")
-
-
 def load_url_overrides() -> tuple[dict, dict]:
     """
     Load URL corrections, keyed for matching. Returns (replace, remove).
@@ -323,6 +368,59 @@ def load_url_overrides() -> tuple[dict, dict]:
 
 
 # ---------------------------------------------------------------------------
+# Excluded sites
+# ---------------------------------------------------------------------------
+def load_excluded_sites() -> dict[str, str]:
+    """
+    Load the sites kept off the page whatever DOC approves, keyed for matching.
+
+    Kept apart from the overrides' remove block on purpose. That block fixes
+    broken links and matches one exact address; this is a policy decision, so
+    it matches a whole host — DOC re-listing a site under a different path or
+    subdomain must not bring it back.
+
+    A file that exists but can't be read stops the build rather than warning:
+    carrying on would publish exactly the sites this file exists to withhold.
+    """
+    try:
+        with open(EXCLUDED_SITES_FILE, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        raise SystemExit(
+            f"Could not read {EXCLUDED_SITES_FILE}: {e}\n"
+            f"Fix the file before building, so excluded sites stay off the page."
+        )
+
+    return {
+        url_key(k): str(v or "")
+        for k, v in (raw.get("exclude") or {}).items()
+        if url_key(k)
+    }
+
+
+def excluded_by(url: str, excluded: dict[str, str]) -> str | None:
+    """
+    The exclusion entry that covers url, or None.
+
+    An entry with no path covers its host and every subdomain of it; one with a
+    path covers that path and everything beneath it on the same host.
+    """
+    key = url_key(url)
+    host, _, path = key.partition("/")
+    for entry in excluded:
+        e_host, _, e_path = entry.partition("/")
+        if host != e_host and not host.endswith("." + e_host):
+            continue
+        if not e_path:
+            return entry
+        if host == e_host and (path == e_path or path.startswith(e_path + "/")):
+            return entry
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Category changes (manual overrides)
 # ---------------------------------------------------------------------------
 def load_category_changes():
@@ -337,6 +435,31 @@ def load_category_changes():
         return []
 
 
+# Keywords are matched as whole words rather than as bare substrings. Plain
+# one-word keywords are checked against the text's tokens; anything carrying
+# punctuation or a space ("node.js", "c++", "k-12", "stack overflow") is
+# matched as a literal substring, because splitting it into tokens would throw
+# away exactly what makes it distinctive.
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
+
+# Endings stripped to give each token a stem, so "courses" still matches the
+# keyword "course" and "supporting" still matches "support". Substring matching
+# used to get this for free, along with every false positive below it; matching
+# the stem keeps the plurals without letting "lab" match "available".
+_SUFFIXES = ("es", "s", "ed", "ing", "al", "ic")
+
+
+def _tokens(text: str) -> set[str]:
+    """Every word in the text, plus a stem for each so inflections still match."""
+    words = _TOKEN_RE.findall(text)
+    out = set(words)
+    for word in words:
+        for suffix in _SUFFIXES:
+            if word.endswith(suffix) and len(word) - len(suffix) >= 3:
+                out.add(word[: -len(suffix)])
+    return out
+
+
 def categorize_auto(site_name: str, site_url: str, description: str | None) -> str:
     """
     Automatic categorization using a simple scoring system.
@@ -347,10 +470,21 @@ def categorize_auto(site_name: str, site_url: str, description: str | None) -> s
         * Title match:    +2
         * Description:    +1
     - Returns the category with the highest score, or 'Other' if no matches.
+
+    Matching is on whole words. Plain substring matching put short keywords
+    inside unrelated longer ones — "js" inside jstor.org, "lab" inside
+    collaborate, "api" inside capital, "sec" inside second — which filed sites
+    under categories nothing in them supported. Whole words also mean a keyword
+    can be added without first checking that it does not happen to be a
+    fragment of some other word.
     """
     text_title = (site_name or "").lower()
     text_url = (site_url or "").lower()
     text_desc = (description or "").lower()
+
+    tokens_title = _tokens(text_title)
+    tokens_url = _tokens(text_url)
+    tokens_desc = _tokens(text_desc)
 
     best_category = "Other"
     best_score = 0
@@ -359,11 +493,20 @@ def categorize_auto(site_name: str, site_url: str, description: str | None) -> s
         score = 0
         for keyword in keywords:
             kw = keyword.lower()
-            if kw in text_url:
+            if _TOKEN_RE.fullmatch(kw):
+                in_url, in_title, in_desc = (
+                    kw in tokens_url, kw in tokens_title, kw in tokens_desc,
+                )
+            else:
+                in_url, in_title, in_desc = (
+                    kw in text_url, kw in text_title, kw in text_desc,
+                )
+
+            if in_url:
                 score += 3
-            if kw in text_title:
+            if in_title:
                 score += 2
-            if kw in text_desc:
+            if in_desc:
                 score += 1
 
         if score > best_score:
@@ -414,11 +557,12 @@ def load_descriptions():
 
 
 def save_descriptions(descriptions: dict):
-    """Save site descriptions to JSON file."""
+    """Save site descriptions to JSON file, replacing it in one step."""
     try:
-        Path(DESCRIPTIONS_FILE).parent.mkdir(parents=True, exist_ok=True)
-        with open(DESCRIPTIONS_FILE, "w", encoding="utf-8") as f:
-            json.dump(descriptions, f, indent=2, ensure_ascii=False)
+        write_text_atomic(
+            Path(DESCRIPTIONS_FILE),
+            json.dumps(descriptions, indent=2, ensure_ascii=False),
+        )
     except Exception as e:
         print(f"Warning: Could not save descriptions file: {e}")
 
@@ -559,6 +703,32 @@ def analyze_website(url: str, site_name: str) -> dict:
         }
 
 
+def description_mode(
+    url: str,
+    descriptions_map: dict,
+    generate_missing: bool,
+    force_regen: bool,
+) -> str:
+    """
+    Where this site's description will come from: "scrape", "cached" or "fallback".
+
+    The build announces and counts the mode before doing the work, and
+    pick_description_for_site then does it. Both ask this function, so the line
+    the build prints cannot disagree with what it then does. They used to: the
+    loop tested only whether the URL was a key in the cache, while the picker
+    also required a description inside that entry, so an entry missing one was
+    announced as "Using cached description" and then scraped.
+    """
+    if force_regen:
+        return "scrape"
+
+    cached = descriptions_map.get(url)
+    if isinstance(cached, dict) and cached.get("description"):
+        return "cached"
+
+    return "scrape" if generate_missing else "fallback"
+
+
 def pick_description_for_site(
     site_name: str,
     url: str,
@@ -568,26 +738,18 @@ def pick_description_for_site(
     force_regen: bool,
 ) -> str:
     """
-    Decide which description to use / generate for a given site.
-    - If force_regen: always re-scrape.
-    - Else if URL already in descriptions_map: use cached.
-    - Else if generate_missing: scrape and store.
-    - Else: fall back to CSV description or generic fallback.
+    Get the description for a site, scraping it if that is the chosen mode.
+    Falls back to the CSV's own description, then to a generic line.
     """
-    key = url
+    mode = description_mode(url, descriptions_map, generate_missing, force_regen)
 
-    if force_regen:
+    if mode == "scrape":
         info = analyze_website(url, site_name)
-        descriptions_map[key] = info
+        descriptions_map[url] = info
         return info["description"]
 
-    if key in descriptions_map and "description" in descriptions_map[key]:
-        return descriptions_map[key]["description"]
-
-    if generate_missing:
-        info = analyze_website(url, site_name)
-        descriptions_map[key] = info
-        return info["description"]
+    if mode == "cached":
+        return descriptions_map[url]["description"]
 
     if row_desc and row_desc.strip():
         return row_desc.strip()
@@ -781,7 +943,7 @@ def build_nav_html(categorized: dict[str, list]) -> str:
         safe = escape_html(cat)
         parts.append(
             f'''            <li class="category-item">
-              <a href="#{safe}" class="category-link" onclick="scrollToCategory('{safe}'); return false;">
+              <a href="#{safe}" class="category-link" onclick="scrollToCategory(this.hash.slice(1)); return false;">
                 <span class="category-name">{safe}</span>
                 <span class="category-count">{count}</span>
               </a>
@@ -794,12 +956,26 @@ def build_sections_html(categorized: dict[str, list], favicons: FaviconFetcher) 
     cats = sorted(categorized.keys())
     sections: list[str] = []
 
+    # Fetching the icons is the slow part of this function — up to three
+    # network requests per site — so it reports progress. The build loop used
+    # to print a line per site saying favicons were enabled, which described a
+    # flag rather than any work, while the work itself happened here in
+    # silence.
+    total = sum(len(v) for v in categorized.values())
+    if favicons.enabled and total:
+        print(f"\nFetching favicons for {total} site(s)...")
+    done = 0
+
     for cat in cats:
         safe_cat = escape_html(cat)
         site_items: list[str] = []
 
         for name, url, desc in categorized[cat]:
             fav_src = favicons.for_url(url)
+            if favicons.enabled:
+                done += 1
+                msg = f"[{done}/{total}] {'icon' if fav_src else 'no icon'}: {name}"
+                tqdm.write(msg) if HAS_TQDM else print(msg)
             img_attrs = 'class="site-favicon" alt="" aria-hidden="true"'
             if fav_src:
                 img_html = f'<img {img_attrs} src="{escape_html(fav_src)}">'
@@ -1030,16 +1206,15 @@ def check_site(name: str, url: str, timeout: int = CHECK_TIMEOUT) -> dict:
             )
             return result
 
-    # Nothing worked; report the most informative failure we saw.
-    if primary["status"] in BLOCKED_STATUSES:
+    # Nothing worked. Only two states can reach this point: the checks above
+    # have already returned for a blocked status, a 5xx and every 4xx other
+    # than 404 and 410, so the listed URL either answered 404/410 or did not
+    # answer at all.
+    if primary["status"]:
         result.update(
-            klass="blocked",
-            detail=f"HTTP {primary['status']} — host answered but refused an automated request",
+            klass="client_error",
+            detail=f"HTTP {primary['status']} on every variant",
         )
-    elif primary["status"] and primary["status"] >= 500:
-        result.update(klass="server_error", detail=f"HTTP {primary['status']} on every variant")
-    elif primary["status"] and primary["status"] >= 400:
-        result.update(klass="client_error", detail=f"HTTP {primary['status']} on every variant")
     else:
         result.update(klass="unreachable", detail=f"{primary['error']} on every variant")
     return result
@@ -1195,7 +1370,7 @@ def link_report_lines(results: list[dict]) -> list[str]:
                 lines.append(f"  {'':<{width}}  -> suggested: {r['suggest']}")
             lines.append(f"  {'':<{width}}  ACTION: {recommended_action(r)}")
 
-    dupes = find_duplicates(results)
+    dupes = find_duplicates(results)  # idempotent; also annotates dupe_of
     if dupes:
         same_page = [g for g in dupes if g["kind"] == "same page"]
         same_host = [g for g in dupes if g["kind"] == "same host"]
@@ -1315,33 +1490,282 @@ def write_link_suggestions(results: list[dict], path: str) -> int:
 
 
 # ---------------------------------------------------------------------------
+# AI scan
+# ---------------------------------------------------------------------------
+AI_REPORT_DIR = "ai_reports"
+AI_REPORT_PREFIX = "ai-scan-"
+AI_SNIPPETS_PER_SITE = 3
+AI_SNIPPET_RADIUS = 70
+
+# What counts as a mention. "AI" is matched case-sensitively and as a whole
+# word, so "said", "Thai" and "aid" don't match but "AI-powered" and "AI's"
+# do. The rest ignore case. The tool names are there because a site adding a
+# chatbot usually names the product rather than saying "artificial
+# intelligence". A hit is a lead for review, not a verdict: "AI" is also a
+# file format, an initialism and a stray menu label.
+AI_TERMS = (
+    ("AI", re.compile(r"(?<![A-Za-z0-9])AI(?![A-Za-z0-9])")),
+    ("A.I.", re.compile(r"(?<![A-Za-z0-9.])A\.I\.")),
+    ("Artificial Intelligence", re.compile(r"\bartificial[\s-]+intelligence\b", re.I)),
+    ("Generative", re.compile(r"\bgenerative\b", re.I)),
+    ("Machine learning", re.compile(r"\bmachine[\s-]+learning\b", re.I)),
+    ("Large language model", re.compile(r"\blarge[\s-]+language[\s-]+models?\b|\bLLMs?\b", re.I)),
+    ("Chatbot", re.compile(r"\bchat[\s-]?bots?\b", re.I)),
+    ("ChatGPT / GPT", re.compile(r"\bchat\s?gpt\b|\bGPT-?\d", re.I)),
+    ("Copilot", re.compile(r"\bco-?pilot\b", re.I)),
+)
+
+# Attributes whose text a visitor sees or hears: tooltips, alt text, screen
+# reader labels and search-box hints, which is often where an "Ask AI" button
+# keeps its only label.
+AI_TEXT_ATTRS = ("alt", "title", "aria-label", "placeholder")
+
+
+def page_text_for_ai(markup: str) -> str:
+    """
+    Everything on the page a student could read: title, meta descriptions,
+    body text and labelling attributes, with scripts and styles dropped so
+    code and class names (".ai-icon") don't count as mentions.
+    """
+    soup = BeautifulSoup(markup, "html.parser")
+    for tag in soup(["script", "style", "noscript", "template", "svg"]):
+        tag.decompose()
+
+    # get_text() already includes the <title>, so only the meta tags are added.
+    parts: list[str] = []
+    for attrs in (
+        {"name": "description"},
+        {"property": "og:description"},
+        {"name": "twitter:description"},
+        {"name": "keywords"},
+    ):
+        meta = soup.find("meta", attrs=attrs)
+        if meta and meta.get("content"):
+            parts.append(meta["content"])
+    parts.append(soup.get_text(" "))
+    for attr in AI_TEXT_ATTRS:
+        for tag in soup.find_all(attrs={attr: True}):
+            parts.append(str(tag.get(attr) or ""))
+
+    return re.sub(r"\s+", " ", html.unescape(" ".join(parts))).strip()
+
+
+def find_ai_mentions(text: str) -> tuple[dict[str, int], list[str]]:
+    """Counts per term, and a few short passages showing the mentions in context."""
+    counts: dict[str, int] = {}
+    spans: list[tuple[int, int]] = []
+    for label, pattern in AI_TERMS:
+        matches = list(pattern.finditer(text))
+        if matches:
+            counts[label] = len(matches)
+            spans.extend(m.span() for m in matches)
+
+    snippets: list[str] = []
+    last_end = -1
+    for start, end in sorted(spans):
+        if start < last_end:  # already inside the previous passage
+            continue
+        lo = max(0, start - AI_SNIPPET_RADIUS)
+        hi = min(len(text), end + AI_SNIPPET_RADIUS)
+        snippets.append(
+            ("..." if lo else "") + text[lo:hi].strip() + ("..." if hi < len(text) else "")
+        )
+        last_end = hi
+        if len(snippets) == AI_SNIPPETS_PER_SITE:
+            break
+    return counts, snippets
+
+
+def scan_site_for_ai(name: str, url: str, timeout: int = CHECK_TIMEOUT_RETRY) -> dict:
+    """Fetch one site's landing page and look for AI mentions in what it shows."""
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
+    result = {
+        "name": name, "url": url, "final": "", "status": "",
+        "counts": {}, "snippets": [], "error": "",
+    }
+    try:
+        resp = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+    except requests.RequestException as e:
+        result["error"] = f"no response ({type(e).__name__})"
+        return result
+
+    result["final"] = resp.url
+    result["status"] = resp.status_code
+    if resp.status_code >= 400:
+        result["error"] = f"HTTP {resp.status_code}"
+        return result
+    if "html" not in resp.headers.get("Content-Type", "").lower():
+        result["error"] = "not an HTML page"
+        return result
+
+    result["counts"], result["snippets"] = find_ai_mentions(page_text_for_ai(resp.text))
+    return result
+
+
+def run_ai_scan(sites: list) -> list[dict]:
+    from concurrent.futures import ThreadPoolExecutor
+
+    print(f"\nScanning {len(sites)} landing pages for AI mentions "
+          f"({CHECK_WORKERS} at a time)...\n")
+    with ThreadPoolExecutor(max_workers=CHECK_WORKERS) as pool:
+        return list(pool.map(lambda s: scan_site_for_ai(s[0], s[1]), sites))
+
+
+def previous_ai_flags(report_dir: str) -> tuple[set[str] | None, str]:
+    """
+    Sites flagged by the most recent earlier scan, keyed by url_key, and that
+    report's file name. None when there is no earlier scan to compare with,
+    so a first run doesn't call every hit "new".
+    """
+    reports = sorted(Path(report_dir).glob(f"{AI_REPORT_PREFIX}*.csv"))
+    if not reports:
+        return None, ""
+    flagged: set[str] = set()
+    try:
+        with open(reports[-1], "r", encoding="utf-8-sig", newline="") as f:
+            for row in csv.DictReader(f):
+                if row.get("Result") == "AI MENTIONED":
+                    flagged.add(url_key(row.get("URL on page", "")))
+    except Exception as e:
+        print(f"Warning: could not read {reports[-1]} to compare with: {e}")
+        return None, ""
+    return flagged, reports[-1].name
+
+
+def mark_new_ai_flags(results: list[dict], previous: set[str] | None) -> None:
+    for r in results:
+        r["new"] = bool(r["counts"]) and previous is not None and url_key(r["url"]) not in previous
+
+
+def ai_terms_summary(r: dict) -> str:
+    return ", ".join(f"{t} ({n})" for t, n in r["counts"].items())
+
+
+def ai_report_lines(results: list[dict], compared_with: str) -> list[str]:
+    flagged = sorted((r for r in results if r["counts"]),
+                     key=lambda r: (not r["new"], r["name"].lower()))
+    failed = sorted((r for r in results if r["error"]), key=lambda r: r["name"].lower())
+    lines: list[str] = []
+
+    lines.append("")
+    lines.append(f"AI MENTIONED ({len(flagged)})")
+    if compared_with:
+        new = sum(1 for r in flagged if r["new"])
+        lines.append(f"  ({new} new since {compared_with}, listed first)")
+    for r in flagged:
+        lines.append("")
+        lines.append(f"  {'[NEW] ' if r['new'] else ''}{r['name']}  {r['url']}")
+        if r["final"] and url_key(r["final"]) != url_key(r["url"]):
+            lines.append(f"      lands on {r['final']}")
+        lines.append(f"      terms: {ai_terms_summary(r)}")
+        for s in r["snippets"]:
+            lines.append(f'      "{s}"')
+
+    if failed:
+        lines.append("")
+        lines.append(f"COULD NOT CHECK ({len(failed)})")
+        lines.append("  (no verdict either way - check these by hand)")
+        for r in failed:
+            lines.append(f"  {r['name']}  {r['url']}")
+            lines.append(f"      {r['error']}")
+
+    clear = len(results) - len(flagged) - len(failed)
+    lines.append("")
+    lines.append(f"NO MENTIONS FOUND ({clear})")
+    return lines
+
+
+def write_ai_report_txt(results: list[dict], path: str, source: str, compared_with: str) -> None:
+    flagged = sum(1 for r in results if r["counts"])
+    failed = sum(1 for r in results if r["error"])
+    head = [
+        "APPROVED SITES AI SCAN",
+        "=" * 60,
+        f"Scanned   : {datetime.now():%Y-%m-%d %H:%M}",
+        f"Source    : {source}",
+        f"Sites     : {len(results)}",
+        f"Summary   : {flagged} mention AI, {failed} could not be checked, "
+        f"{len(results) - flagged - failed} no mentions found",
+        "",
+        "Only each site's landing page is read, as the server sends it. AI features",
+        "that sit deeper in a site, behind a sign-in, or that a page draws in with",
+        "JavaScript after loading will not show up here. A mention is a lead for",
+        "review, not proof a student can reach an AI tool; no mention is not proof",
+        "they can't.",
+    ]
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(
+        "\n".join(head + ai_report_lines(results, compared_with)) + "\n", encoding="utf-8"
+    )
+
+
+def write_ai_report_csv(results: list[dict], path: str) -> None:
+    """One row per site. Its Result and URL columns are what the next scan compares against."""
+    def result(r):
+        return "AI MENTIONED" if r["counts"] else "COULD NOT CHECK" if r["error"] else "NONE FOUND"
+
+    order = {"AI MENTIONED": 0, "COULD NOT CHECK": 1, "NONE FOUND": 2}
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "Site", "URL on page", "Lands on", "Result", "New since last scan",
+            "Terms found", "Examples", "Problem", "Scanned",
+        ])
+        today = f"{datetime.now():%Y-%m-%d}"
+        for r in sorted(results, key=lambda r: (order[result(r)], not r["new"], r["name"].lower())):
+            w.writerow([
+                r["name"],
+                r["url"],
+                r["final"] if r["final"] and url_key(r["final"]) != url_key(r["url"]) else "",
+                result(r),
+                "yes" if r["new"] else "",
+                ai_terms_summary(r),
+                "\n".join(r["snippets"]),
+                r["error"],
+                today,
+            ])
+
+
+# ---------------------------------------------------------------------------
 # Row resolution
 # ---------------------------------------------------------------------------
-def resolve_sites(df, url_replace: dict, url_remove: dict, announce: bool = True):
+def resolve_sites(rows: list[dict], url_replace: dict, url_remove: dict,
+                  excluded: dict | None = None, announce: bool = True):
     """
     Turn CSV rows into the (name, url, row) list the page is built from.
 
     Applies, in order: skip blank rows, skip rows marked "removed", normalize
-    the URL, drop sites named in the overrides' remove block, and rewrite those
-    in its replace block.
+    the URL, drop excluded sites, drop sites named in the overrides' remove
+    block, and rewrite those in its replace block.
 
     --check-links uses this too, so the checker tests exactly the links the
     page would carry rather than a second interpretation of the same rules.
     """
-    sites: list[tuple[str, str, object]] = []
+    sites: list[tuple[str, str, dict]] = []
     removed = replaced = duplicates = 0
+    excluded = excluded or {}
+    excluded_hits: dict[str, list[str]] = defaultdict(list)
     seen: set[str] = set()
     kept_by_key: dict[str, str] = {}
-    total = len(df)
+    total = len(rows)
 
     def say(msg: str):
         if not announce:
             return
         tqdm.write(msg) if HAS_TQDM else print(msg)
 
-    for idx, row in enumerate(df.itertuples(index=False), start=1):
-        name = str(row.Title).strip()
-        raw_url = str(row.Website_Url).strip()
+    for idx, row in enumerate(rows, start=1):
+        name = str(row.get(TITLE_COLUMN) or "").strip()
+        raw_url = str(row.get("Website_Url") or "").strip()
 
         if not name or not raw_url:
             say(f"[{idx}/{total}] Skipping empty row")
@@ -1351,7 +1775,20 @@ def resolve_sites(df, url_replace: dict, url_remove: dict, announce: bool = True
             say(f"[{idx}/{total}] Skipping removed site: {name}")
             continue
 
+        if not looks_like_url(raw_url):
+            say(f"[{idx}/{total}] Skipping {name}: not a URL ({raw_url[:60]!r})")
+            continue
+
         url = normalize_url(raw_url)
+
+        # Sites withheld from students whatever DOC approves. Checked before the
+        # overrides and again after them, so a URL correction can't route a
+        # site onto an excluded host.
+        entry = excluded_by(url, excluded)
+        if entry:
+            say(f"[{idx}/{total}] Excluding {name}: {excluded[entry]}")
+            excluded_hits[entry].append(name)
+            continue
 
         # Corrections for URLs that don't load as DOC exports them.
         key = url_key(url)
@@ -1364,6 +1801,11 @@ def resolve_sites(df, url_replace: dict, url_remove: dict, announce: bool = True
             say(f"[{idx}/{total}] URL override: {url} -> {url_replace[key]}")
             url = url_replace[key]
             replaced += 1
+            entry = excluded_by(url, excluded)
+            if entry:
+                say(f"[{idx}/{total}] Excluding {name}: {excluded[entry]}")
+                excluded_hits[entry].append(name)
+                continue
 
         # DOC lists some sites twice under separate whitelist IDs, differing
         # only by a trailing slash or a www prefix (epa.gov and liveabout.com
@@ -1386,6 +1828,7 @@ def resolve_sites(df, url_replace: dict, url_remove: dict, announce: bool = True
         "replaced": replaced,
         "seen": seen,
         "duplicates": duplicates,
+        "excluded": dict(excluded_hits),
     }
 
 
@@ -1401,6 +1844,38 @@ def csv_columns(path: Path) -> list[str]:
     except Exception:
         pass
     return []
+
+
+def read_csv_rows(path: Path) -> tuple[list[dict], list[str]]:
+    """
+    Read a CSV into a list of row dicts, plus its column names.
+
+    This was pandas, which earned its place twice: this read and one boolean
+    mask. The stdlib does both, and dropping it takes pandas and numpy out of
+    the install for a script that never indexes, joins or aggregates anything.
+
+    Header names are stripped, because DOC exports pad some of them. A blank
+    cell arrives as an empty string rather than pandas' NaN, which also fixes
+    a row with no Title reading as the string "nan" and passing the
+    not-empty check downstream.
+    """
+    with open(path, "r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.reader(f)
+        try:
+            header = [str(c).strip() for c in next(reader)]
+        except StopIteration:
+            return [], []
+        rows = [
+            {header[i]: (cell if i < len(cell_row) else "")
+             for i, cell in enumerate(cell_row[: len(header)])}
+            for cell_row in reader
+            if any(str(c).strip() for c in cell_row)
+        ]
+    # Fill columns a short row omitted, so every row has every key.
+    for row in rows:
+        for col in header:
+            row.setdefault(col, "")
+    return rows, header
 
 
 def missing_columns(path: Path) -> list[str]:
@@ -1515,17 +1990,26 @@ def main(argv=None):
         help="Output HTML file (default: Approved_Websites.html)",
     )
 
-    # Description behavior: default = do everything (regen all).
+    # Descriptions: the default scrapes only what is missing. Re-scraping
+    # everything is an explicit choice because it takes the better part of an
+    # hour and overwrites descriptions that may have been edited by hand.
     desc_group = parser.add_mutually_exclusive_group()
+    desc_group.add_argument(
+        "--refresh-descriptions",
+        action="store_true",
+        help="Re-scrape every site, replacing all cached descriptions. Slow, and it "
+             "discards any hand-edited text in data/site_descriptions.json.",
+    )
     desc_group.add_argument(
         "--no-descriptions",
         action="store_true",
-        help="Disable scraping: do not fetch any descriptions (use JSON/CSV/fallback only).",
+        help="Disable scraping entirely: use the cache, then the CSV, then a generic "
+             "fallback.",
     )
     desc_group.add_argument(
         "--descriptions-missing-only",
         action="store_true",
-        help="Only scrape descriptions for sites missing in the JSON (no regen of existing).",
+        help="Accepted for compatibility — this is now the default.",
     )
 
     parser.add_argument(
@@ -1535,22 +2019,50 @@ def main(argv=None):
              "sites, then exit without building.",
     )
     parser.add_argument(
+        "--check-ai",
+        action="store_true",
+        help="Read every site's landing page for mentions of AI or artificial "
+             "intelligence and report the sites that have them, then exit "
+             "without building.",
+    )
+    parser.add_argument(
         "--report",
         metavar="PATH",
-        help=f"With --check-links, write the findings to this exact file instead of "
-             f"the timestamped pair in {LINK_REPORT_DIR}/. Format follows the "
-             f"extension: .csv for a spreadsheet, anything else plain text.",
+        help=f"With --check-links or --check-ai, write the findings to this exact "
+             f"file instead of the timestamped pair in {LINK_REPORT_DIR}/ or "
+             f"{AI_REPORT_DIR}/. Format follows the extension: .csv for a "
+             f"spreadsheet, anything else plain text.",
     )
     parser.add_argument(
         "--no-report",
         action="store_true",
-        help=f"With --check-links, don't write report files to {LINK_REPORT_DIR}/.",
+        help="With --check-links or --check-ai, don't write report files.",
     )
     parser.add_argument(
         "--all-categories",
         action="store_true",
         help=f"Build every row, instead of only those whose '{CATEGORY_COLUMN}' "
              f"mentions '{CATEGORY_FILTER}'.",
+    )
+
+    # Run history. Every build and every --check-links run is recorded to
+    # data/build_history.db, which is what makes the trend report possible.
+    parser.add_argument(
+        "--trends",
+        action="store_true",
+        help=f"Write the trend report ({trend_report.OUTPUT}) from the recorded run "
+             f"history and exit, without building or checking anything.",
+    )
+    parser.add_argument(
+        "--no-history",
+        action="store_true",
+        help="Don't record this run in the history database.",
+    )
+    parser.add_argument(
+        "--backfill-history",
+        action="store_true",
+        help="Seed the history from past builds found on disk and in git, then exit. "
+             "Safe to re-run; runs already recorded are left alone.",
     )
 
     # Favicons: default = embed favicons.
@@ -1562,10 +2074,49 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
-    if (args.report or args.no_report) and not args.check_links:
-        parser.error("--report and --no-report only apply to --check-links.")
+    if (args.report or args.no_report) and not (args.check_links or args.check_ai):
+        parser.error("--report and --no-report only apply to --check-links and --check-ai.")
     if args.report and args.no_report:
         parser.error("--report and --no-report contradict each other.")
+    if args.check_links and args.check_ai:
+        parser.error("Run --check-links and --check-ai separately; each writes its own report.")
+    if args.trends and (args.check_links or args.check_ai):
+        parser.error("--trends reports on past runs; it cannot be combined with a check.")
+
+    # Both of these work purely from recorded history, so neither needs a CSV,
+    # a template, or a network.
+    if args.backfill_history:
+        print("Seeding run history from past builds on disk and in git...\n")
+        summary = history_backfill.backfill(
+            check_classes=CHECK_CLASSES,
+            broken_classes=CHECK_BROKEN,
+        )
+        print(
+            f"\nRecorded {summary['builds']} build(s) and {summary['checks']} link check(s)."
+        )
+        if summary["builds_already_present"] or summary["checks_already_present"]:
+            print(
+                f"Left alone: {summary['builds_already_present']} build(s) and "
+                f"{summary['checks_already_present']} link check(s) already recorded."
+            )
+        if summary["pages_unparseable"]:
+            print(
+                f"Skipped {summary['pages_unparseable']} HTML file(s) that this builder "
+                f"did not generate."
+            )
+        print(f"\nNow run --trends to write {trend_report.OUTPUT}.")
+        return
+
+    if args.trends:
+        summary = trend_report.render(broken_classes=CHECK_BROKEN)
+        print(
+            f"Wrote {summary['output']} from {summary['builds']} build(s) and "
+            f"{summary['link_checks']} link check(s)."
+        )
+        print(f"Latest build: {summary['latest_total']} approved sites.")
+        if summary["problems"]:
+            print(f"{summary['problems']} link(s) flagged by the most recent check.")
+        return
 
     template_path = Path(args.template)
     if not template_path.exists():
@@ -1578,39 +2129,46 @@ def main(argv=None):
     else:
         csv_path = choose_csv(Path(CSV_DIR))
 
-    df = pd.read_csv(csv_path, encoding="utf-8-sig")
-    df.columns = [str(c).strip() for c in df.columns]
+    rows, columns = read_csv_rows(csv_path)
+    # Kept for the history record: whether the export could be filtered at all,
+    # and how many rows it offered before anything was dropped.
+    original_columns = set(columns)
+    total_export_rows = len(rows)
 
     missing = []
-    if TITLE_COLUMN not in df.columns:
+    if TITLE_COLUMN not in columns:
         missing.append(TITLE_COLUMN)
-    url_col = next((c for c in URL_COLUMNS if c in df.columns), None)
+    url_col = next((c for c in URL_COLUMNS if c in columns), None)
     if url_col is None:
         missing.append(" or ".join(URL_COLUMNS))
     if missing:
         raise SystemExit(
             f"{csv_path} is missing required column(s): {', '.join(missing)}.\n"
-            f"Found: {', '.join(df.columns)}"
+            f"Found: {', '.join(columns)}"
         )
 
-    # Work with one canonical URL column downstream. Renaming onto an existing
-    # column would leave two columns of the same name, so drop the other first.
+    # Work with one canonical URL column downstream. Copying onto Website_Url
+    # overwrites whatever was there, which is what the old drop-then-rename did.
     if url_col != "Website_Url":
-        df = df.drop(columns=["Website_Url"], errors="ignore")
-        df = df.rename(columns={url_col: "Website_Url"})
+        for row in rows:
+            row["Website_Url"] = row.get(url_col, "")
         print(f"Using '{url_col}' as the site URL column.")
 
     # Keep education rows only (unless the export doesn't say, or --all-categories).
+    rows_skipped_category = 0
     if args.all_categories:
         print("Category filter disabled: building every row in the export.")
-    elif CATEGORY_COLUMN in df.columns:
-        keep = df[CATEGORY_COLUMN].astype(str).str.contains(
-            CATEGORY_FILTER, case=False, na=False
-        )
-        dropped = int((~keep).sum())
-        df = df[keep]
-        print(f"Category filter '{CATEGORY_FILTER}': kept {len(df)} rows, skipped {dropped}.")
-        if df.empty:
+    elif CATEGORY_COLUMN in columns:
+        needle = CATEGORY_FILTER.lower()
+        kept = [
+            r for r in rows
+            if needle in str(r.get(CATEGORY_COLUMN) or "").lower()
+        ]
+        dropped = len(rows) - len(kept)
+        rows_skipped_category = dropped
+        rows = kept
+        print(f"Category filter '{CATEGORY_FILTER}': kept {len(rows)} rows, skipped {dropped}.")
+        if not rows:
             raise SystemExit(
                 f"No rows in {csv_path} have a '{CATEGORY_COLUMN}' containing "
                 f"'{CATEGORY_FILTER}'. Use --all-categories to build the export as-is."
@@ -1628,44 +2186,73 @@ def main(argv=None):
     descriptions = load_descriptions()
     category_changes = load_category_changes()
     url_replace, url_remove = load_url_overrides()
+    excluded_sites = load_excluded_sites()
 
-    # Default: do everything
-    force_regen = True
-    generate_missing = True
-
-    # If user disables or restricts descriptions:
-    if args.no_descriptions:
-        force_regen = False
-        generate_missing = False
-    elif args.descriptions_missing_only:
-        force_regen = False
-        generate_missing = True
+    # Default: fill in what is missing and leave cached descriptions alone.
+    # --descriptions-missing-only asks for exactly this, and is kept as a no-op
+    # so existing habits and scripts keep working.
+    force_regen = args.refresh_descriptions
+    generate_missing = not args.no_descriptions
 
     # Favicons: default embed, unless explicitly disabled
     embed_favicons = not args.no_embed_favicons
 
     categorized: dict[str, list] = defaultdict(list)
-    total_rows = len(df)
-    has_desc_col = "Website_Description" in df.columns
+    has_desc_col = "Website_Description" in columns
 
-    # Some simple counters for summary
     scraped_count = 0
     cached_count = 0
     disabled_count = 0
-    removed_by_override = 0
-    replaced_by_override = 0
-    seen_url_keys: set[str] = set()
 
-    sites, resolve_stats = resolve_sites(df, url_replace, url_remove)
+    sites, resolve_stats = resolve_sites(rows, url_replace, url_remove, excluded_sites)
     removed_by_override = resolve_stats["removed"]
     duplicate_rows = resolve_stats["duplicates"]
     replaced_by_override = resolve_stats["replaced"]
     seen_url_keys = resolve_stats["seen"]
+    excluded_hits = resolve_stats["excluded"]
+
+    if args.check_ai:
+        results = run_ai_scan(sites)
+        # Compare against the timestamped history, wherever this run's own
+        # report goes, so naming a --report file doesn't lose the comparison.
+        previous, compared_with = previous_ai_flags(AI_REPORT_DIR)
+        mark_new_ai_flags(results, previous)
+        for line in ai_report_lines(results, compared_with):
+            print(line)
+
+        if args.report:
+            if Path(args.report).suffix.lower() == ".csv":
+                write_ai_report_csv(results, args.report)
+                print(f"\nWrote spreadsheet report to {args.report}")
+            else:
+                write_ai_report_txt(results, args.report, str(csv_path), compared_with)
+                print(f"\nWrote text report to {args.report}")
+        elif not args.no_report:
+            stamp = f"{datetime.now():%Y%m%d-%H%M}"
+            base = Path(AI_REPORT_DIR) / f"{AI_REPORT_PREFIX}{stamp}"
+            write_ai_report_csv(results, str(base.with_suffix(".csv")))
+            write_ai_report_txt(results, str(base.with_suffix(".txt")), str(csv_path), compared_with)
+            print(f"\nWrote report to {base}.csv")
+            print(f"           and {base}.txt")
+
+        flagged = sum(1 for r in results if r["counts"])
+        new = sum(1 for r in results if r["new"])
+        failed = sum(1 for r in results if r["error"])
+        print(
+            f"\n{flagged} site(s) mention AI"
+            + (f", {new} of them new since {compared_with}" if compared_with else "")
+            + f"; {failed} could not be checked (of {len(results)})."
+        )
+        print(
+            "\nNote: only landing pages are read, as the server sends them. AI "
+            "features deeper in a\nsite, behind a sign-in, or drawn in by "
+            "JavaScript won't show up. Review each hit by hand."
+        )
+        return
 
     if args.check_links:
         results = run_link_check(sites)
-        find_duplicates(results)  # annotates dupe_of before any output
-        print_link_report(results)
+        print_link_report(results)  # annotates dupe_of on the way through
 
         if args.report:
             if Path(args.report).suffix.lower() == ".csv":
@@ -1694,6 +2281,19 @@ def main(argv=None):
         if written:
             print(f"Wrote {written} suggested override(s) to {URL_SUGGESTIONS_FILE}.")
             print(f"Review them, then merge the ones you want into {URL_OVERRIDES_FILE}.")
+        # As with a build: the reports are already on disk by now, so a problem
+        # recording the run is worth reporting but not worth failing over.
+        if not args.no_history:
+            try:
+                history.record_link_check(
+                    results=results,
+                    broken_classes=CHECK_BROKEN,
+                    source_csv=str(csv_path),
+                )
+                print(f"Recorded this check in {history.DB_PATH}.")
+            except Exception as e:
+                print(f"Warning: could not record this check in {history.DB_PATH}: {e}")
+
         print(
             "\nNote: checked from this machine, not from inside a facility. A site "
             "reachable here\nmay still be blocked by the facility filter, and an "
@@ -1717,22 +2317,21 @@ def main(argv=None):
     for idx, (name, url, row) in iterator:
         row_desc = ""
         if has_desc_col:
-            row_desc = str(getattr(row, "Website_Description", "") or "")
+            row_desc = str(row.get("Website_Description") or "")
 
-        # Decide description mode for logging/counters
-        if args.no_descriptions:
-            desc_mode = "disabled"
-            disabled_count += 1
-        elif args.descriptions_missing_only and url in descriptions:
-            desc_mode = "cached"
+        # Ask the same question the picker will ask, so the line printed here
+        # describes the work that is about to happen.
+        desc_mode = description_mode(url, descriptions, generate_missing, force_regen)
+        if desc_mode == "cached":
             cached_count += 1
-        else:
-            desc_mode = "scrape"
+        elif desc_mode == "scrape":
             scraped_count += 1
+        else:
+            disabled_count += 1
 
         msg_prefix = f"[{idx}/{total_rows}]"
-        if desc_mode == "disabled":
-            msg = f"{msg_prefix} Descriptions disabled: {name}"
+        if desc_mode == "fallback":
+            msg = f"{msg_prefix} No description available: {name}"
         elif desc_mode == "cached":
             msg = f"{msg_prefix} Using cached description: {name}"
         else:
@@ -1755,15 +2354,26 @@ def main(argv=None):
         # Use description-aware categorization (with manual overrides)
         category = get_category_for_site(name, url, desc, category_changes)
 
-        if embed_favicons:
-            # We do not fetch here (that happens in build_sections_html),
-            # but this makes it clear that favicon embedding is enabled.
-            if HAS_TQDM:
-                tqdm.write(f"{msg_prefix} (Favicons enabled) {name}")
-            else:
-                print(f"{msg_prefix} (Favicons enabled) {name}")
-
         categorized[category].append((name, url, desc))
+
+    # Drop cache entries whose key was never an address. Four of these existed,
+    # keyed by prose out of a bad export ("Link is in place for mandatory
+    # entry..."); looks_like_url now stops new ones arriving, and this clears
+    # any already there. Safe to do unconditionally: no real site can ever have
+    # one of these keys.
+    junk_keys = [k for k in descriptions if not looks_like_url(k)]
+    for key in junk_keys:
+        del descriptions[key]
+    if junk_keys:
+        print(f"\nDropped {len(junk_keys)} cached description(s) not keyed by a URL:")
+        for key in junk_keys:
+            print(f"  {key[:72]}")
+
+    # Entries for sites this build didn't touch are only reported, never
+    # removed. With the category filter on, "not in this build" means "not an
+    # education row", not "not needed" — pruning here would quietly throw away
+    # the reentry and vet-program descriptions.
+    stale = [k for k in descriptions if k not in {url for _, url, _ in sites}]
 
     # Persist JSON sidecars
     save_descriptions(descriptions)
@@ -1798,18 +2408,26 @@ def main(argv=None):
         .replace("{{LAST_UPDATED}}", last_updated)
     )
 
-    Path(args.output).write_text(html_out, encoding="utf-8")
+    write_text_atomic(Path(args.output), html_out)
 
     print()
     print(f"Wrote {args.output} with {total_sites} sites across {total_categories} categories.")
     if args.no_descriptions:
-        print("Descriptions: scraping DISABLED (using existing JSON/CSV/fallback).")
-    elif args.descriptions_missing_only:
-        print("Descriptions: scraped ONLY for sites missing in JSON (existing cached kept).")
+        print("Descriptions: scraping DISABLED (cache, then CSV, then a generic line).")
+    elif args.refresh_descriptions:
+        print("Descriptions: re-scraped for ALL sites (--refresh-descriptions).")
     else:
-        print("Descriptions: regenerated for ALL sites (default).")
+        print("Descriptions: scraped only where missing; cached text kept (default).")
 
-    print(f"Description summary: scraped={scraped_count}, cached={cached_count}, disabled={disabled_count}")
+    print(
+        f"Description summary: scraped={scraped_count}, cached={cached_count}, "
+        f"fallback={disabled_count}"
+    )
+    if stale:
+        print(
+            f"  ({len(stale)} cached description(s) are for sites not in this build — "
+            f"kept, since the category filter alone explains most of them.)"
+        )
 
     if duplicate_rows:
         print(f"Duplicates: {duplicate_rows} row(s) skipped as the same site listed twice.")
@@ -1825,10 +2443,62 @@ def main(argv=None):
         for k in unused:
             print(f"  Note: override '{k}' matched nothing in this export.")
 
+    if excluded_sites:
+        count = sum(len(v) for v in excluded_hits.values())
+        print(f"Excluded sites: {count} row(s) withheld ({EXCLUDED_SITES_FILE}).")
+        # Unlike a URL override, an unmatched exclusion is not stale: DOC may
+        # list the site again in a later export, and the entry must be there
+        # when it does. So this is reported, not flagged for cleanup.
+        for entry in sorted(excluded_sites):
+            names = excluded_hits.get(entry)
+            if names:
+                print(f"  {entry}: withheld {', '.join(names)}")
+            else:
+                print(f"  {entry}: not in this export")
+
     if embed_favicons:
         print("Favicons: embedded as data: URLs (default).")
     else:
         print("Favicons: fetching DISABLED.")
+
+    # Record the run, so the counts above become a series rather than something
+    # that scrolls off the terminal. A failure here must not lose a page that is
+    # already written to disk, so it is reported and otherwise ignored.
+    if not args.no_history:
+        recorded = [
+            (name, url, category)
+            for category, entries in categorized.items()
+            for name, url, _ in entries
+        ]
+        try:
+            history.record_build(
+                sites=recorded,
+                counts={
+                    "export_rows": total_export_rows,
+                    "rows_skipped_category": rows_skipped_category,
+                    "duplicates_collapsed": duplicate_rows,
+                    "removed_by_override": removed_by_override,
+                    "replaced_by_override": replaced_by_override,
+                    "descriptions_scraped": scraped_count,
+                    "descriptions_cached": cached_count,
+                },
+                source_csv=str(csv_path),
+                output_file=args.output,
+                # The same stamp the page itself carries, not "now". Recording
+                # happens after the favicon pass, which can run for minutes, so
+                # a fresh timestamp here would not match the one written into
+                # the page — and --backfill-history, which reads that stamp
+                # back out of generated pages, would record this very build a
+                # second time as a reconstructed duplicate.
+                ran_at=f"{last_updated}:00",
+                category_filter="" if args.all_categories else (
+                    CATEGORY_FILTER if CATEGORY_COLUMN in original_columns else ""
+                ),
+            )
+            print(f"History: recorded this build in {history.DB_PATH}.")
+            print(f"         Run --trends to refresh {trend_report.OUTPUT}.")
+        except Exception as e:
+            print(f"Warning: could not record this build in {history.DB_PATH}: {e}")
 
 
 if __name__ == "__main__":

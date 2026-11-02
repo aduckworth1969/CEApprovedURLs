@@ -46,3 +46,6 @@ data/url_overrides.suggested.json
 
 # Generated link-check reports, kept locally to send on rather than committed
 link_reports/
+
+# Generated AI-scan reports; the newest is what the next scan compares against
+ai_reports/

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approved Sites — Build History</title>
+<style>
+  /* Palette tokens. Dark values are declared under both the OS media query and
+     the data-theme scope, so the in-page toggle wins either way. */
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --plane:          #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --deemphasis:     #898781;
+    --good:           #006300;
+    --critical:       #d03b3b;
+    --warning:        #fab219;
+    --wash:           rgba(42,120,214,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --plane:          #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --deemphasis:     #898781;
+      --good:           #0ca30c;
+      --critical:       #d03b3b;
+      --warning:        #fab219;
+      --wash:           rgba(57,135,229,0.12);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --plane:          #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --deemphasis:     #898781;
+    --good:           #0ca30c;
+    --critical:       #d03b3b;
+    --warning:        #fab219;
+    --wash:           rgba(57,135,229,0.12);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: 0 16px 72px;
+    background: var(--plane);
+    color: var(--text-primary);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+
+  header.page { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; padding: 40px 0 8px; }
+  header.page .titles { flex: 1 1 320px; min-width: 0; }
+  h1 { margin: 0 0 6px; font-size: 26px; font-weight: 650; letter-spacing: -0.01em; }
+  .subtitle { margin: 0; color: var(--text-secondary); font-size: 14px; }
+
+  button.theme {
+    flex: 0 0 auto; background: var(--surface-1); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px;
+    font: inherit; font-size: 13px; cursor: pointer;
+  }
+  button.theme:hover { color: var(--text-primary); }
+
+  section { margin-top: 32px; }
+  h2 {
+    margin: 0 0 4px; font-size: 13px; font-weight: 650; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted);
+  }
+  .section-note { margin: 0 0 14px; color: var(--text-secondary); font-size: 13.5px; max-width: 70ch; }
+
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+  }
+
+  /* Hero + stat tiles */
+  .hero-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch; }
+  .hero { flex: 1 1 240px; display: flex; flex-direction: column; justify-content: center; }
+  .hero .label { color: var(--text-secondary); font-size: 13.5px; margin-bottom: 2px; }
+  .hero .value { font-size: 54px; font-weight: 650; line-height: 1.05; letter-spacing: -0.02em; }
+  .hero .meta { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(146px, 1fr)); gap: 14px; flex: 3 1 460px; }
+  @media (min-width: 720px) { .hero-row > .tiles { grid-template-columns: repeat(2, 1fr); } }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .tile .label { color: var(--text-secondary); font-size: 12.5px; margin-bottom: 3px; }
+  .tile .value { font-size: 25px; font-weight: 640; line-height: 1.15; }
+  .tile .delta { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+  .up   { color: var(--good); }
+  .down { color: var(--critical); }
+  .flat { color: var(--text-muted); }
+
+  /* Charts */
+  .chart-card { position: relative; }
+  figure { margin: 0; }
+  figcaption { color: var(--text-secondary); font-size: 13px; margin: 0 0 12px; }
+  svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 14px 0 0; padding: 0; list-style: none; }
+  .legend li { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-secondary); }
+  .legend .key { width: 18px; height: 3px; border-radius: 2px; flex: 0 0 auto; }
+  .legend .key.dot { width: 9px; height: 9px; border-radius: 50%; }
+
+  .tooltip {
+    position: absolute; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 11px; font-size: 12.5px; min-width: 132px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.14); z-index: 5;
+  }
+  .tooltip .tt-date { color: var(--text-secondary); font-size: 11.5px; margin-bottom: 3px; }
+  .tooltip .tt-row { display: flex; align-items: baseline; gap: 7px; }
+  .tooltip .tt-val { font-weight: 650; font-size: 15px; color: var(--text-primary); }
+  .tooltip .tt-name { color: var(--text-secondary); }
+  .tooltip .tt-scope { color: var(--text-muted); font-size: 11.5px; margin-top: 3px; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  caption { text-align: left; color: var(--text-secondary); font-size: 13px; padding-bottom: 10px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--gridline); white-space: nowrap; }
+  th {
+    font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 600; border-bottom-color: var(--baseline);
+  }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.wrap-cell { white-space: normal; min-width: 230px; }
+  .url { color: var(--text-secondary); font-size: 12.5px; word-break: break-all; }
+
+  /* share bar inside the category table: one hue, magnitude only */
+  .bar-track { display: block; width: 100%; min-width: 70px; height: 6px; background: var(--gridline); border-radius: 3px; }
+  .bar-fill { display: block; height: 6px; background: var(--series-1); border-radius: 3px; }
+
+  details.more { margin-top: 12px; }
+  details.more > summary {
+    cursor: pointer; color: var(--text-secondary); font-size: 13px;
+    padding: 5px 0; list-style: revert;
+  }
+  details.more > summary:hover { color: var(--text-primary); }
+
+  .pill {
+    display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px;
+    border: 1px solid var(--border); color: var(--text-muted); vertical-align: 1px;
+  }
+  .empty { color: var(--text-secondary); font-size: 13.5px; margin: 0; }
+
+  footer.page {
+    margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--gridline);
+    color: var(--text-secondary); font-size: 13px;
+  }
+  footer.page ul { margin: 8px 0 0; padding-left: 20px; }
+  footer.page li { margin-bottom: 6px; max-width: 78ch; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    button.theme { display: none; }
+    .card, .tile { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <div class="titles">
+      <h1>Approved Sites — Build History</h1>
+      <p class="subtitle">{{SCOPE_LINE}}</p>
+    </div>
+    <button class="theme" type="button" id="theme-toggle" aria-live="polite">Theme: system</button>
+  </header>
+
+  <section aria-label="Current totals">
+    <div class="hero-row">
+      <div class="card hero">
+        <div class="label">{{HERO_LABEL}}</div>
+        <div class="value">{{HERO_VALUE}}</div>
+        <div class="meta">{{HERO_META}}</div>
+      </div>
+      <div class="tiles">
+{{STAT_TILES}}
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Growth over time">
+    <h2>Growth over time</h2>
+    <p class="section-note">{{GROWTH_NOTE}}</p>
+    <div class="card chart-card">
+{{GROWTH_CHART}}
+    </div>
+  </section>
+
+  <section aria-label="Sites by category">
+    <h2>By category</h2>
+    <p class="section-note">{{CATEGORY_NOTE}}</p>
+    <div class="card table-wrap">
+{{CATEGORY_TABLE}}
+    </div>
+  </section>
+
+{{CHURN_SECTION}}
+
+{{LINK_SECTION}}
+
+  <section aria-label="Every recorded run">
+    <h2>Every recorded run</h2>
+    <p class="section-note">{{RUN_NOTE}}</p>
+    <div class="card table-wrap">
+{{RUN_TABLE}}
+    </div>
+  </section>
+
+  <footer class="page">
+    <strong>How to read this</strong>
+    <ul>
+{{NOTES}}
+    </ul>
+    <p style="margin-top:16px">Generated {{GENERATED}} from {{DB_PATH}}.</p>
+  </footer>
+
+</div>
+
+<script>
+/* Theme toggle: system -> light -> dark. Stored per browser. */
+(function () {
+  var KEY = 'history-theme', order = ['system', 'light', 'dark'];
+  var btn = document.getElementById('theme-toggle');
+  function read() { try { return localStorage.getItem(KEY) || 'system'; } catch (e) { return 'system'; } }
+  function apply(pref) {
+    if (pref === 'system') { document.documentElement.removeAttribute('data-theme'); }
+    else { document.documentElement.setAttribute('data-theme', pref); }
+    if (btn) { btn.textContent = 'Theme: ' + pref; }
+  }
+  apply(read());
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = order[(order.indexOf(read()) + 1) % order.length];
+      try { localStorage.setItem(KEY, next); } catch (e) {}
+      apply(next);
+    });
+  }
+})();
+
+/* Crosshair + tooltip for the line charts.
+
+   The tooltip enhances; it never gates. Every value it shows is also in the
+   "Every recorded run" table below, so nothing here is reachable only by
+   hovering. Keyboard focus on a point shows the same readout as the pointer. */
+(function () {
+  document.querySelectorAll('[data-chart]').forEach(function (fig) {
+    var svg = fig.querySelector('svg.chart');
+    var tip = fig.querySelector('.tooltip');
+    var raw = fig.querySelector('script[type="application/json"]');
+    if (!svg || !tip || !raw) { return; }
+
+    var points;
+    try { points = JSON.parse(raw.textContent); } catch (e) { return; }
+    if (!points.length) { return; }
+
+    var rule = svg.querySelector('.crosshair');
+    var halo = svg.querySelector('.focus-dot');
+
+    function show(i, clientX, clientY) {
+      var p = points[i];
+      if (!p) { return; }
+      var box = fig.getBoundingClientRect();
+      var rect = svg.getBoundingClientRect();
+      var scale = rect.width / svg.viewBox.baseVal.width;
+
+      if (rule) {
+        rule.setAttribute('x1', p.x); rule.setAttribute('x2', p.x);
+        rule.style.opacity = 1;
+      }
+      if (halo) {
+        halo.setAttribute('cx', p.x); halo.setAttribute('cy', p.y);
+        halo.setAttribute('fill', p.color);
+        halo.style.opacity = 1;
+      }
+
+      /* Labels come from the database; insert as text, never as markup. */
+      tip.querySelector('.tt-date').textContent = p.label;
+      tip.querySelector('.tt-val').textContent = p.value;
+      tip.querySelector('.tt-name').textContent = p.unit;
+      var scopeEl = tip.querySelector('.tt-scope');
+      scopeEl.textContent = p.scope || '';
+      scopeEl.style.display = p.scope ? '' : 'none';
+
+      var px = (typeof clientX === 'number')
+        ? clientX - box.left
+        : rect.left - box.left + p.x * scale;
+      var py = (typeof clientY === 'number')
+        ? clientY - box.top
+        : rect.top - box.top + p.y * scale;
+
+      tip.style.opacity = 1;
+      var w = tip.offsetWidth, h = tip.offsetHeight;
+      var left = Math.min(Math.max(px - w / 2, 6), fig.clientWidth - w - 6);
+      var top = py - h - 14;
+      if (top < 4) { top = py + 18; }
+      tip.style.left = left + 'px';
+      tip.style.top = top + 'px';
+    }
+
+    function hide() {
+      tip.style.opacity = 0;
+      if (rule) { rule.style.opacity = 0; }
+      if (halo) { halo.style.opacity = 0; }
+    }
+
+    function nearest(clientX) {
+      var rect = svg.getBoundingClientRect();
+      var vb = svg.viewBox.baseVal;
+      var x = (clientX - rect.left) / rect.width * vb.width;
+      var best = 0, bestD = Infinity;
+      for (var i = 0; i < points.length; i++) {
+        var d = Math.abs(points[i].x - x);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+      return best;
+    }
+
+    svg.addEventListener('pointermove', function (e) {
+      var i = nearest(e.clientX);
+      show(i, e.clientX, points[i] ? undefined : e.clientY);
+    });
+    svg.addEventListener('pointerleave', hide);
+
+    /* Keyboard parity: each point is focusable and reports the same values. */
+    svg.querySelectorAll('.hit').forEach(function (el) {
+      var i = parseInt(el.getAttribute('data-i'), 10);
+      el.addEventListener('focus', function () { show(i); });
+      el.addEventListener('blur', hide);
+      el.addEventListener('pointerenter', function (e) { show(i, e.clientX, e.clientY); });
+    });
+  });
+})();
+</script>
+</body>
+</html>

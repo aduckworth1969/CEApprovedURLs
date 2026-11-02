@@ -10,9 +10,9 @@ local web server on the education network).
 ## What it produces
 
 `Approved_Websites.html` — one file listing the DOC-approved sites tagged for
-education, grouped into categories, with favicons embedded as `data:` URLs. No
-external requests are made when a student opens it, so it works on a fully
-isolated network.
+education (less any on the [exclude list](#excluding-sites)), grouped into
+categories, with favicons embedded as `data:` URLs. No external requests are
+made when a student opens it, so it works on a fully isolated network.
 
 The page itself provides:
 
@@ -77,8 +77,11 @@ mid-build.
 Extra columns — `ID`, `Associated URLs`, `Authorizing SR` — are ignored, and a
 leading BOM is handled. `URL Category` is used to filter (see below).
 
-Rows are skipped when the title or URL is blank, or when either contains
-"removed".
+Rows are skipped when the title or URL is blank, when either contains
+"removed", or when the URL column holds a note rather than an address — DOC
+exports carry a few, such as "Link is in place for mandatory entry... it is not
+a valid website.". Those used to be turned into live links on the page and
+scraped for a description.
 
 **Duplicates are collapsed.** DOC lists some sites twice under separate
 whitelist IDs, differing only by a trailing slash or a `www.` prefix —
@@ -120,44 +123,63 @@ filter entirely.
 |---|---|
 | `-o`, `--output` | Output file (default: `Approved_Websites.html`) |
 | `-t`, `--template` | Template file (default: `template.html`) |
-| `--descriptions-missing-only` | Only fetch descriptions for sites not already cached |
+| `--refresh-descriptions` | Re-scrape every description, replacing the cache (slow; discards hand edits) |
 | `--no-descriptions` | Don't fetch any descriptions; use the cache, then the CSV, then a generic fallback |
+| `--descriptions-missing-only` | Accepted for compatibility — this is the default |
 | `--no-embed-favicons` | Don't fetch or embed favicons |
 | `--all-categories` | Build every row, not just `IncarEducation` ones |
 | `--check-links` | Check every link and report problems, then exit without building |
-| `--report PATH` | With `--check-links`, write findings to this exact file instead of the default pair |
-| `--no-report` | With `--check-links`, skip writing report files |
+| `--check-ai` | Scan every site's landing page for mentions of AI, then exit without building |
+| `--report PATH` | With `--check-links` or `--check-ai`, write findings to this exact file instead of the default pair |
+| `--no-report` | With `--check-links` or `--check-ai`, skip writing report files |
+| `--trends` | Write `Build_History.html` from the recorded history, then exit |
+| `--backfill-history` | Seed the history from past builds on disk and in git, then exit |
+| `--no-history` | Don't record this run in the history database |
 
-### Which one to use
+### Descriptions
 
-**For a normal rebuild, use `--descriptions-missing-only`:**
+**The plain command is the one you want**, for a normal rebuild:
 
 ```bash
-python build_approved_sites.py --descriptions-missing-only
+python build_approved_sites.py
 ```
 
-It reuses the cached descriptions and scrapes only sites it hasn't seen, so a
-rebuild takes a minute rather than the better part of an hour.
+It keeps the descriptions already in `data/site_descriptions.json` and scrapes
+only sites it has not seen, so a rebuild takes seconds rather than the better
+part of an hour.
 
-This matters beyond speed. The **default** re-scrapes every site and
-**overwrites `data/site_descriptions.json`**, discarding any hand-editing done
-to those descriptions. Use the bare command only when you actually want every
-description regenerated from scratch.
+To deliberately re-scrape everything — say a lot of sites have been redesigned
+since the cache was filled:
+
+```bash
+python build_approved_sites.py --refresh-descriptions
+```
+
+That one **replaces every cached description**, including any you have edited by
+hand, which is why it is no longer what the bare command does. It also takes
+roughly an hour, because each site is fetched with a polite pause between
+requests.
 
 For a quick check with no network at all — template edits, category tuning:
 
 ```bash
-python build_approved_sites.py --descriptions-missing-only --no-embed-favicons
+python build_approved_sites.py --no-descriptions --no-embed-favicons
 ```
+
+`--descriptions-missing-only` still works and still means what it says; it is
+simply the default now, so you no longer have to remember it.
 
 ### When a new export arrives
 
 1. Drop the CSV into `site_extracts/`.
-2. Run `python build_approved_sites.py --descriptions-missing-only` and press
-   Enter to take the newest file.
+2. Run `python build_approved_sites.py` and press Enter to take the newest file.
 3. Read the build output: it names any site dropped as "removed", every URL
-   override applied, and any override that no longer matches anything.
+   override applied, any override that no longer matches anything, and each
+   site held back by the [exclude list](#excluding-sites). Look over what's new
+   while you're there — if DOC has approved something students shouldn't reach,
+   add it to the exclude list and build again.
 4. Commit the regenerated `Approved_Websites.html` and publish it.
+5. Run `python build_approved_sites.py --trends` to refresh the trend report.
 
 ---
 
@@ -166,6 +188,20 @@ python build_approved_sites.py --descriptions-missing-only --no-embed-favicons
 Each site is placed by keyword scoring against its URL (+3), title (+2) and
 description (+1), using the `category_keywords` lists near the top of
 `build_approved_sites.py`. No keyword match means `Other`.
+
+Keywords match **whole words**, not fragments, with plurals and common endings
+folded in — so `course` still matches "courses" and `support` still matches
+"supporting", but `lab` no longer matches "available" and `ui` no longer
+matches "building". A keyword containing punctuation or a space (`node.js`,
+`c++`, `k-12`, `stack overflow`) is matched literally instead, since splitting
+it into words would lose what makes it distinctive.
+
+This means you can add a short keyword without first checking that it isn't
+hiding inside some unrelated word. It also means an abbreviation no longer
+covers the word it abbreviates: `edu` matches "edu", not "education", so both
+are listed. Domains that run words together (`myopenmath.com`) have no word
+boundary to match on, so where that matters the domain itself is a keyword —
+as `wamap` and `freecodecamp` already were.
 
 To correct a single site without touching the keyword lists, add an entry to
 `data/category_changes.json`:
@@ -183,6 +219,111 @@ To correct a single site without touching the keyword lists, add an entry to
 
 Overrides are matched on `site_name` **and** `site_url`, and only apply when
 `status` is `"applied"`.
+
+---
+
+## Excluding sites
+
+DOC updates its whitelist slowly, so a site students shouldn't reach can stay
+approved for months. The exclude list keeps such sites off the page, whatever
+the export says. It lives in `data/excluded_sites.json`:
+
+```json
+{
+  "_comment": "...",
+
+  "exclude": {
+    "quizlet.com": "Students should not have access. Excluded by Corrections Education 2026-10-06.",
+    "dl.correctionsed.com": "Students should not have access. Excluded by Corrections Education 2026-10-06."
+  }
+}
+```
+
+Each line under `"exclude"` is one site: the **address** on the left, the
+**reason** on the right. The reason is printed in the build output, so write
+who asked for it and when — whoever reads the file next will want to know.
+
+### Adding a site
+
+1. Open `data/excluded_sites.json` in any text editor.
+2. Add a line inside the `"exclude"` block, using the site's address with no
+   `https://` or `www.` — those are ignored anyway:
+
+   ```json
+   "exclude": {
+     "quizlet.com": "Students should not have access. Excluded by Corrections Education 2026-10-06.",
+     "dl.correctionsed.com": "Students should not have access. Excluded by Corrections Education 2026-10-06.",
+     "example.com": "Reason, who asked, and the date."
+   }
+   ```
+
+   Every line except the last ends with a comma, and both sides are in double
+   quotes. A missing comma is the usual mistake: the build stops with
+   `Expecting ',' delimiter: line 4`, and the comma belongs at the end of the
+   line *before* the one it names.
+3. Rebuild: `python build_approved_sites.py`.
+4. Check the end of the build output for the site (see below), then commit
+   `data/excluded_sites.json` together with the rebuilt `Approved_Websites.html`
+   and publish the page.
+
+### Removing an exclusion
+
+Delete the site's line — and the comma before it, if it was the last line —
+then rebuild, commit and publish as above. The site comes back only if DOC still
+approves it; the exclude list can withhold sites, never add them.
+
+### Checking it worked
+
+Every build ends with a summary of the list, entry by entry:
+
+```
+Excluded sites: 2 row(s) withheld (data/excluded_sites.json).
+  dl.correctionsed.com: withheld Corrections SED DL
+  quizlet.com: withheld Quizlet
+```
+
+and names each row as it is skipped:
+
+```
+[3/104] Excluding Corrections SED DL: Students should not have access. ...
+```
+
+An entry that shows `not in this export` matched nothing this time. **Leave it
+in place** — unlike a URL override that matches nothing, it is not stale. DOC
+may list the site again in a later export, and the entry needs to be there when
+it does.
+
+If the file can't be read — a missing comma, a stray quote — the build stops
+with an error instead of carrying on, because carrying on would publish exactly
+the sites the file exists to hold back. Fix it and run the build again.
+
+### What an entry matches
+
+An entry matches a **whole site**, more broadly than a URL override does, so DOC
+can't bring a site back by listing it a different way:
+
+| Entry | Excludes | Leaves alone |
+|---|---|---|
+| `quizlet.com` | `https://quizlet.com/`, `www.quizlet.com/join`, `help.quizlet.com` | `notquizlet.com`, `quizlet.co` |
+| `dl.correctionsed.com` | `dl.correctionsed.com`, anything under it | `correctionsed.com` |
+| `example.com/staff` | `example.com/staff`, `example.com/staff/login` | `example.com/`, `example.com/staffroom` |
+
+So: an address with no path takes the site and all its subdomains, never the
+parent site; an address with a path takes only that part of the site.
+
+`--check-links` skips excluded sites too, so they don't fill the link report.
+
+### What it doesn't do
+
+It hides a site from the page; it does not change what the facility filter
+allows. A student who types the address may still reach it. To block a site
+outright, ask DOC to remove it from the whitelist — and keep the entry here
+until a new export confirms they have.
+
+It is also separate from the `remove` list in `data/url_overrides.json` (see
+below). That list is for **broken** links and matches one exact address; this
+one is for sites students **shouldn't** reach. Use this one for those, so the
+reason stays clear and a re-listed variant can't slip through.
 
 ---
 
@@ -323,6 +464,148 @@ exports. It does not replace testing from inside.
 
 ---
 
+## Checking sites for AI
+
+```bash
+python build_approved_sites.py --check-ai
+```
+
+Students may not use AI tools, and sites add AI features without notice. This
+reads the landing page of every site the page would carry (after the category
+filter, URL overrides and exclusions) and reports the ones that mention AI, then
+exits without building. Takes a minute or two for ~100 sites. Run it
+periodically, for example with each new export.
+
+It looks for these, in the page text, title, meta description and the labels on
+buttons and images (`alt`, `title`, `aria-label`, `placeholder`):
+
+| Term | Matches |
+|---|---|
+| AI | `AI` as a whole word, capitals only: `AI-powered`, `Ask AI` — not `said`, `Thai` or `aid` |
+| A.I. | `A.I.` |
+| Artificial Intelligence | any capitalization |
+| Generative, Machine learning, Large language model / LLM | any capitalization |
+| Chatbot, ChatGPT / GPT-4, Copilot | product and feature names a site may use instead of "AI" |
+
+Scripts and styles are skipped, so code and class names like `.ai-icon` don't
+count. To add or remove a term, edit `AI_TERMS` in `build_approved_sites.py`.
+
+Results come in three groups:
+
+| Group | Meaning |
+|---|---|
+| **AI MENTIONED** | One or more terms found. Each site lists the terms, how often, and up to three passages showing them in context. |
+| **COULD NOT CHECK** | The page couldn't be read — usually a 403 from a site that turns away automated requests (the same ones `--check-links` lists as blocked). Check these by hand. |
+| **NO MENTIONS FOUND** | Nothing matched. |
+
+### What's new since last time
+
+Every run writes a timestamped pair to `ai_reports/`, like the link check:
+
+```
+ai_reports/ai-scan-20261102-1410.csv
+ai_reports/ai-scan-20261102-1410.txt
+```
+
+Each run compares itself with the newest earlier report there, and marks sites
+that mention AI now but didn't then as **[NEW]**, listed first (and `yes` in the
+spreadsheet's *New since last scan* column). That is the list to review. The
+first run has nothing to compare with, so it marks nothing new. Keep the
+reports: deleting them resets the comparison. `ai_reports/` is gitignored.
+
+`--report PATH` and `--no-report` work as they do for `--check-links`. Either
+way the run still compares with the newest report in `ai_reports/`.
+
+### What it can't tell you
+
+A mention is a lead, not a verdict. Most hits are a news site writing *about*
+AI, or a course catalogue listing an AI course; those give students no AI tool.
+What to look for is a site that **offers** one — an "Ask AI" button, a chat
+assistant, an AI tutor. Equally, no mention is not a clean bill of health:
+
+- Only the **landing page** is read. A feature deeper in the site won't show.
+- The page is read **as the server sends it**. Chat widgets and buttons that
+  JavaScript adds after the page loads are invisible to it.
+- Anything **behind a sign-in** is out of reach.
+
+Like the link check, it runs from your machine, not from inside a facility.
+
+---
+
+## Run history and trends
+
+Every build and every `--check-links` run records itself in
+`data/build_history.db`, a SQLite file. Nothing to install and no server — it is
+a single file you can copy, back up or mail like any other.
+
+This exists because the counts a build prints scroll off the terminal. The page
+can tell you how many sites are approved today; only a history can tell you
+whether that number is going up.
+
+### The report
+
+```bash
+python build_approved_sites.py --trends
+```
+
+writes `Build_History.html` — one self-contained file, no external requests, so
+it opens from an email attachment or a file share on a network with no internet
+access. It carries:
+
+- the current approved-site count, and the change since the previous build
+- a growth chart across every recorded build
+- sites per category, with the change since the last comparable build
+- which sites were **added, removed or re-categorised** since the previous build
+- link health: what is broken now, and how long each link has been broken
+- a table of every recorded run, so every plotted number is also readable as text
+
+Recording is automatic. `--trends` only reads what is already there, so it needs
+no CSV, no template and no network — and it never re-runs a build.
+
+### Seeding the history
+
+```bash
+python build_approved_sites.py --backfill-history
+```
+
+Past builds left their counts in the pages they generated — in git, in
+`local_backups/`, and in the current `Approved_Websites.html` — so the history
+does not have to start from empty. This reads them back and records them, which
+recovers the series from **28 Oct 2025** onward. Safe to run more than once;
+runs already recorded are left alone.
+
+Builds recovered this way are flagged **reconstructed** in the report. The
+counts are those builds' own; only the manner of recording differs.
+
+### Reading the growth chart
+
+Two things about it are deliberate, because both would otherwise mislead:
+
+**The line breaks on 16 Sep 2026.** That is when the page began building only
+`IncarEducation` rows, which cut it from 137 sites to 103. Drawn as one
+continuous line that looks like 34 sites were withdrawn, when the page's *scope*
+narrowed instead. Totals either side of the break are not comparable, so they
+are not joined, and the earlier ones are drawn in gray as context.
+
+**The axis starts at zero.** Growth is the question, and a truncated axis would
+turn every small wobble into a cliff.
+
+A few older builds also list the same site twice under two spellings of its
+address, from before the build collapsed those. Where that happened the run
+table shows a lower "distinct" count beside the published total.
+
+### If you would rather it didn't record
+
+`--no-history` skips recording for one run. The database is ordinary SQLite, so
+you can also query it directly:
+
+```bash
+sqlite3 data/build_history.db \
+  "SELECT ran_at, total_sites FROM build_runs ORDER BY ran_at;"
+```
+
+---
+
 ## Favicons
 
 Each site's icon is embedded in the page as a `data:` URL, so no icon is
@@ -351,14 +634,22 @@ fetching entirely.
 
 ```
 ├── build_approved_sites.py     # CSV → HTML generator
+├── urlkeys.py                  # URL matching rules, shared by the three users of them
+├── history.py                  # Records each run to SQLite; queries it back
+├── history_backfill.py         # Recovers past runs from disk and git
+├── trend_report.py             # Renders the history as HTML
 ├── template.html               # Page template + all CSS/JS
-├── Approved_Websites.html      # Generated output
+├── trend_template.html         # Trend report template + all CSS/JS
+├── Approved_Websites.html      # Generated output — the student-facing page
+├── Build_History.html          # Generated output — the trend report
 ├── site_extracts/              # CSV exports (gitignored)
 ├── link_reports/               # --check-links output (gitignored)
 └── data/
     ├── site_descriptions.json  # Cached descriptions, keyed by URL
     ├── category_changes.json   # Manual category overrides
-    └── url_overrides.json      # Link corrections and removals
+    ├── url_overrides.json      # Link corrections and removals
+    ├── excluded_sites.json     # Sites kept off the page despite DOC approval
+    └── build_history.db        # Run history (SQLite) — accumulated, not regenerable
 ```
 
 `data/site_descriptions.json` is the scrape cache — keep it, or every build
@@ -367,6 +658,12 @@ re-visits every site in the export. It's updated in place on each run.
 **`site_extracts/` is gitignored** (`*.csv`), so CSV exports are not in the
 repo. Colleagues cloning this will need an export from you before they can
 build.
+
+**`data/build_history.db` is committed, unlike the other generated files.** It
+is the one thing here that cannot be regenerated: `link_reports/` and
+`Build_History.html` can always be produced again, but a build that was never
+recorded is gone. Committing it also means the history survives a laptop, and
+follows the repo to whoever picks this up next.
 
 ---
 
