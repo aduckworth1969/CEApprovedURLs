@@ -1490,6 +1490,252 @@ def write_link_suggestions(results: list[dict], path: str) -> int:
 
 
 # ---------------------------------------------------------------------------
+# AI scan
+# ---------------------------------------------------------------------------
+AI_REPORT_DIR = "ai_reports"
+AI_REPORT_PREFIX = "ai-scan-"
+AI_SNIPPETS_PER_SITE = 3
+AI_SNIPPET_RADIUS = 70
+
+# What counts as a mention. "AI" is matched case-sensitively and as a whole
+# word, so "said", "Thai" and "aid" don't match but "AI-powered" and "AI's"
+# do. The rest ignore case. The tool names are there because a site adding a
+# chatbot usually names the product rather than saying "artificial
+# intelligence". A hit is a lead for review, not a verdict: "AI" is also a
+# file format, an initialism and a stray menu label.
+AI_TERMS = (
+    ("AI", re.compile(r"(?<![A-Za-z0-9])AI(?![A-Za-z0-9])")),
+    ("A.I.", re.compile(r"(?<![A-Za-z0-9.])A\.I\.")),
+    ("Artificial Intelligence", re.compile(r"\bartificial[\s-]+intelligence\b", re.I)),
+    ("Generative", re.compile(r"\bgenerative\b", re.I)),
+    ("Machine learning", re.compile(r"\bmachine[\s-]+learning\b", re.I)),
+    ("Large language model", re.compile(r"\blarge[\s-]+language[\s-]+models?\b|\bLLMs?\b", re.I)),
+    ("Chatbot", re.compile(r"\bchat[\s-]?bots?\b", re.I)),
+    ("ChatGPT / GPT", re.compile(r"\bchat\s?gpt\b|\bGPT-?\d", re.I)),
+    ("Copilot", re.compile(r"\bco-?pilot\b", re.I)),
+)
+
+# Attributes whose text a visitor sees or hears: tooltips, alt text, screen
+# reader labels and search-box hints, which is often where an "Ask AI" button
+# keeps its only label.
+AI_TEXT_ATTRS = ("alt", "title", "aria-label", "placeholder")
+
+
+def page_text_for_ai(markup: str) -> str:
+    """
+    Everything on the page a student could read: title, meta descriptions,
+    body text and labelling attributes, with scripts and styles dropped so
+    code and class names (".ai-icon") don't count as mentions.
+    """
+    soup = BeautifulSoup(markup, "html.parser")
+    for tag in soup(["script", "style", "noscript", "template", "svg"]):
+        tag.decompose()
+
+    # get_text() already includes the <title>, so only the meta tags are added.
+    parts: list[str] = []
+    for attrs in (
+        {"name": "description"},
+        {"property": "og:description"},
+        {"name": "twitter:description"},
+        {"name": "keywords"},
+    ):
+        meta = soup.find("meta", attrs=attrs)
+        if meta and meta.get("content"):
+            parts.append(meta["content"])
+    parts.append(soup.get_text(" "))
+    for attr in AI_TEXT_ATTRS:
+        for tag in soup.find_all(attrs={attr: True}):
+            parts.append(str(tag.get(attr) or ""))
+
+    return re.sub(r"\s+", " ", html.unescape(" ".join(parts))).strip()
+
+
+def find_ai_mentions(text: str) -> tuple[dict[str, int], list[str]]:
+    """Counts per term, and a few short passages showing the mentions in context."""
+    counts: dict[str, int] = {}
+    spans: list[tuple[int, int]] = []
+    for label, pattern in AI_TERMS:
+        matches = list(pattern.finditer(text))
+        if matches:
+            counts[label] = len(matches)
+            spans.extend(m.span() for m in matches)
+
+    snippets: list[str] = []
+    last_end = -1
+    for start, end in sorted(spans):
+        if start < last_end:  # already inside the previous passage
+            continue
+        lo = max(0, start - AI_SNIPPET_RADIUS)
+        hi = min(len(text), end + AI_SNIPPET_RADIUS)
+        snippets.append(
+            ("..." if lo else "") + text[lo:hi].strip() + ("..." if hi < len(text) else "")
+        )
+        last_end = hi
+        if len(snippets) == AI_SNIPPETS_PER_SITE:
+            break
+    return counts, snippets
+
+
+def scan_site_for_ai(name: str, url: str, timeout: int = CHECK_TIMEOUT_RETRY) -> dict:
+    """Fetch one site's landing page and look for AI mentions in what it shows."""
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+    }
+    result = {
+        "name": name, "url": url, "final": "", "status": "",
+        "counts": {}, "snippets": [], "error": "",
+    }
+    try:
+        resp = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+    except requests.RequestException as e:
+        result["error"] = f"no response ({type(e).__name__})"
+        return result
+
+    result["final"] = resp.url
+    result["status"] = resp.status_code
+    if resp.status_code >= 400:
+        result["error"] = f"HTTP {resp.status_code}"
+        return result
+    if "html" not in resp.headers.get("Content-Type", "").lower():
+        result["error"] = "not an HTML page"
+        return result
+
+    result["counts"], result["snippets"] = find_ai_mentions(page_text_for_ai(resp.text))
+    return result
+
+
+def run_ai_scan(sites: list) -> list[dict]:
+    from concurrent.futures import ThreadPoolExecutor
+
+    print(f"\nScanning {len(sites)} landing pages for AI mentions "
+          f"({CHECK_WORKERS} at a time)...\n")
+    with ThreadPoolExecutor(max_workers=CHECK_WORKERS) as pool:
+        return list(pool.map(lambda s: scan_site_for_ai(s[0], s[1]), sites))
+
+
+def previous_ai_flags(report_dir: str) -> tuple[set[str] | None, str]:
+    """
+    Sites flagged by the most recent earlier scan, keyed by url_key, and that
+    report's file name. None when there is no earlier scan to compare with,
+    so a first run doesn't call every hit "new".
+    """
+    reports = sorted(Path(report_dir).glob(f"{AI_REPORT_PREFIX}*.csv"))
+    if not reports:
+        return None, ""
+    flagged: set[str] = set()
+    try:
+        with open(reports[-1], "r", encoding="utf-8-sig", newline="") as f:
+            for row in csv.DictReader(f):
+                if row.get("Result") == "AI MENTIONED":
+                    flagged.add(url_key(row.get("URL on page", "")))
+    except Exception as e:
+        print(f"Warning: could not read {reports[-1]} to compare with: {e}")
+        return None, ""
+    return flagged, reports[-1].name
+
+
+def mark_new_ai_flags(results: list[dict], previous: set[str] | None) -> None:
+    for r in results:
+        r["new"] = bool(r["counts"]) and previous is not None and url_key(r["url"]) not in previous
+
+
+def ai_terms_summary(r: dict) -> str:
+    return ", ".join(f"{t} ({n})" for t, n in r["counts"].items())
+
+
+def ai_report_lines(results: list[dict], compared_with: str) -> list[str]:
+    flagged = sorted((r for r in results if r["counts"]),
+                     key=lambda r: (not r["new"], r["name"].lower()))
+    failed = sorted((r for r in results if r["error"]), key=lambda r: r["name"].lower())
+    lines: list[str] = []
+
+    lines.append("")
+    lines.append(f"AI MENTIONED ({len(flagged)})")
+    if compared_with:
+        new = sum(1 for r in flagged if r["new"])
+        lines.append(f"  ({new} new since {compared_with}, listed first)")
+    for r in flagged:
+        lines.append("")
+        lines.append(f"  {'[NEW] ' if r['new'] else ''}{r['name']}  {r['url']}")
+        if r["final"] and url_key(r["final"]) != url_key(r["url"]):
+            lines.append(f"      lands on {r['final']}")
+        lines.append(f"      terms: {ai_terms_summary(r)}")
+        for s in r["snippets"]:
+            lines.append(f'      "{s}"')
+
+    if failed:
+        lines.append("")
+        lines.append(f"COULD NOT CHECK ({len(failed)})")
+        lines.append("  (no verdict either way - check these by hand)")
+        for r in failed:
+            lines.append(f"  {r['name']}  {r['url']}")
+            lines.append(f"      {r['error']}")
+
+    clear = len(results) - len(flagged) - len(failed)
+    lines.append("")
+    lines.append(f"NO MENTIONS FOUND ({clear})")
+    return lines
+
+
+def write_ai_report_txt(results: list[dict], path: str, source: str, compared_with: str) -> None:
+    flagged = sum(1 for r in results if r["counts"])
+    failed = sum(1 for r in results if r["error"])
+    head = [
+        "APPROVED SITES AI SCAN",
+        "=" * 60,
+        f"Scanned   : {datetime.now():%Y-%m-%d %H:%M}",
+        f"Source    : {source}",
+        f"Sites     : {len(results)}",
+        f"Summary   : {flagged} mention AI, {failed} could not be checked, "
+        f"{len(results) - flagged - failed} no mentions found",
+        "",
+        "Only each site's landing page is read, as the server sends it. AI features",
+        "that sit deeper in a site, behind a sign-in, or that a page draws in with",
+        "JavaScript after loading will not show up here. A mention is a lead for",
+        "review, not proof a student can reach an AI tool; no mention is not proof",
+        "they can't.",
+    ]
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(
+        "\n".join(head + ai_report_lines(results, compared_with)) + "\n", encoding="utf-8"
+    )
+
+
+def write_ai_report_csv(results: list[dict], path: str) -> None:
+    """One row per site. Its Result and URL columns are what the next scan compares against."""
+    def result(r):
+        return "AI MENTIONED" if r["counts"] else "COULD NOT CHECK" if r["error"] else "NONE FOUND"
+
+    order = {"AI MENTIONED": 0, "COULD NOT CHECK": 1, "NONE FOUND": 2}
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "Site", "URL on page", "Lands on", "Result", "New since last scan",
+            "Terms found", "Examples", "Problem", "Scanned",
+        ])
+        today = f"{datetime.now():%Y-%m-%d}"
+        for r in sorted(results, key=lambda r: (order[result(r)], not r["new"], r["name"].lower())):
+            w.writerow([
+                r["name"],
+                r["url"],
+                r["final"] if r["final"] and url_key(r["final"]) != url_key(r["url"]) else "",
+                result(r),
+                "yes" if r["new"] else "",
+                ai_terms_summary(r),
+                "\n".join(r["snippets"]),
+                r["error"],
+                today,
+            ])
+
+
+# ---------------------------------------------------------------------------
 # Row resolution
 # ---------------------------------------------------------------------------
 def resolve_sites(rows: list[dict], url_replace: dict, url_remove: dict,
@@ -1773,16 +2019,24 @@ def main(argv=None):
              "sites, then exit without building.",
     )
     parser.add_argument(
+        "--check-ai",
+        action="store_true",
+        help="Read every site's landing page for mentions of AI or artificial "
+             "intelligence and report the sites that have them, then exit "
+             "without building.",
+    )
+    parser.add_argument(
         "--report",
         metavar="PATH",
-        help=f"With --check-links, write the findings to this exact file instead of "
-             f"the timestamped pair in {LINK_REPORT_DIR}/. Format follows the "
-             f"extension: .csv for a spreadsheet, anything else plain text.",
+        help=f"With --check-links or --check-ai, write the findings to this exact "
+             f"file instead of the timestamped pair in {LINK_REPORT_DIR}/ or "
+             f"{AI_REPORT_DIR}/. Format follows the extension: .csv for a "
+             f"spreadsheet, anything else plain text.",
     )
     parser.add_argument(
         "--no-report",
         action="store_true",
-        help=f"With --check-links, don't write report files to {LINK_REPORT_DIR}/.",
+        help="With --check-links or --check-ai, don't write report files.",
     )
     parser.add_argument(
         "--all-categories",
@@ -1820,12 +2074,14 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
-    if (args.report or args.no_report) and not args.check_links:
-        parser.error("--report and --no-report only apply to --check-links.")
+    if (args.report or args.no_report) and not (args.check_links or args.check_ai):
+        parser.error("--report and --no-report only apply to --check-links and --check-ai.")
     if args.report and args.no_report:
         parser.error("--report and --no-report contradict each other.")
-    if args.trends and args.check_links:
-        parser.error("--trends reports on past runs; it cannot be combined with --check-links.")
+    if args.check_links and args.check_ai:
+        parser.error("Run --check-links and --check-ai separately; each writes its own report.")
+    if args.trends and (args.check_links or args.check_ai):
+        parser.error("--trends reports on past runs; it cannot be combined with a check.")
 
     # Both of these work purely from recorded history, so neither needs a CSV,
     # a template, or a network.
@@ -1954,6 +2210,45 @@ def main(argv=None):
     replaced_by_override = resolve_stats["replaced"]
     seen_url_keys = resolve_stats["seen"]
     excluded_hits = resolve_stats["excluded"]
+
+    if args.check_ai:
+        results = run_ai_scan(sites)
+        # Compare against the timestamped history, wherever this run's own
+        # report goes, so naming a --report file doesn't lose the comparison.
+        previous, compared_with = previous_ai_flags(AI_REPORT_DIR)
+        mark_new_ai_flags(results, previous)
+        for line in ai_report_lines(results, compared_with):
+            print(line)
+
+        if args.report:
+            if Path(args.report).suffix.lower() == ".csv":
+                write_ai_report_csv(results, args.report)
+                print(f"\nWrote spreadsheet report to {args.report}")
+            else:
+                write_ai_report_txt(results, args.report, str(csv_path), compared_with)
+                print(f"\nWrote text report to {args.report}")
+        elif not args.no_report:
+            stamp = f"{datetime.now():%Y%m%d-%H%M}"
+            base = Path(AI_REPORT_DIR) / f"{AI_REPORT_PREFIX}{stamp}"
+            write_ai_report_csv(results, str(base.with_suffix(".csv")))
+            write_ai_report_txt(results, str(base.with_suffix(".txt")), str(csv_path), compared_with)
+            print(f"\nWrote report to {base}.csv")
+            print(f"           and {base}.txt")
+
+        flagged = sum(1 for r in results if r["counts"])
+        new = sum(1 for r in results if r["new"])
+        failed = sum(1 for r in results if r["error"])
+        print(
+            f"\n{flagged} site(s) mention AI"
+            + (f", {new} of them new since {compared_with}" if compared_with else "")
+            + f"; {failed} could not be checked (of {len(results)})."
+        )
+        print(
+            "\nNote: only landing pages are read, as the server sends them. AI "
+            "features deeper in a\nsite, behind a sign-in, or drawn in by "
+            "JavaScript won't show up. Review each hit by hand."
+        )
+        return
 
     if args.check_links:
         results = run_link_check(sites)

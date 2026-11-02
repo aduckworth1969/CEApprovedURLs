@@ -129,8 +129,9 @@ filter entirely.
 | `--no-embed-favicons` | Don't fetch or embed favicons |
 | `--all-categories` | Build every row, not just `IncarEducation` ones |
 | `--check-links` | Check every link and report problems, then exit without building |
-| `--report PATH` | With `--check-links`, write findings to this exact file instead of the default pair |
-| `--no-report` | With `--check-links`, skip writing report files |
+| `--check-ai` | Scan every site's landing page for mentions of AI, then exit without building |
+| `--report PATH` | With `--check-links` or `--check-ai`, write findings to this exact file instead of the default pair |
+| `--no-report` | With `--check-links` or `--check-ai`, skip writing report files |
 | `--trends` | Write `Build_History.html` from the recorded history, then exit |
 | `--backfill-history` | Seed the history from past builds on disk and in git, then exit |
 | `--no-history` | Don't record this run in the history database |
@@ -460,6 +461,74 @@ here can still be blocked by the facility filter, and an internal-only host can
 fail here yet work there. It finds origin-side rot — dead domains, expired
 sites, moved hosts — which is the problem that accumulates quietly between
 exports. It does not replace testing from inside.
+
+---
+
+## Checking sites for AI
+
+```bash
+python build_approved_sites.py --check-ai
+```
+
+Students may not use AI tools, and sites add AI features without notice. This
+reads the landing page of every site the page would carry (after the category
+filter, URL overrides and exclusions) and reports the ones that mention AI, then
+exits without building. Takes a minute or two for ~100 sites. Run it
+periodically, for example with each new export.
+
+It looks for these, in the page text, title, meta description and the labels on
+buttons and images (`alt`, `title`, `aria-label`, `placeholder`):
+
+| Term | Matches |
+|---|---|
+| AI | `AI` as a whole word, capitals only: `AI-powered`, `Ask AI` — not `said`, `Thai` or `aid` |
+| A.I. | `A.I.` |
+| Artificial Intelligence | any capitalization |
+| Generative, Machine learning, Large language model / LLM | any capitalization |
+| Chatbot, ChatGPT / GPT-4, Copilot | product and feature names a site may use instead of "AI" |
+
+Scripts and styles are skipped, so code and class names like `.ai-icon` don't
+count. To add or remove a term, edit `AI_TERMS` in `build_approved_sites.py`.
+
+Results come in three groups:
+
+| Group | Meaning |
+|---|---|
+| **AI MENTIONED** | One or more terms found. Each site lists the terms, how often, and up to three passages showing them in context. |
+| **COULD NOT CHECK** | The page couldn't be read — usually a 403 from a site that turns away automated requests (the same ones `--check-links` lists as blocked). Check these by hand. |
+| **NO MENTIONS FOUND** | Nothing matched. |
+
+### What's new since last time
+
+Every run writes a timestamped pair to `ai_reports/`, like the link check:
+
+```
+ai_reports/ai-scan-20261102-1410.csv
+ai_reports/ai-scan-20261102-1410.txt
+```
+
+Each run compares itself with the newest earlier report there, and marks sites
+that mention AI now but didn't then as **[NEW]**, listed first (and `yes` in the
+spreadsheet's *New since last scan* column). That is the list to review. The
+first run has nothing to compare with, so it marks nothing new. Keep the
+reports: deleting them resets the comparison. `ai_reports/` is gitignored.
+
+`--report PATH` and `--no-report` work as they do for `--check-links`. Either
+way the run still compares with the newest report in `ai_reports/`.
+
+### What it can't tell you
+
+A mention is a lead, not a verdict. Most hits are a news site writing *about*
+AI, or a course catalogue listing an AI course; those give students no AI tool.
+What to look for is a site that **offers** one — an "Ask AI" button, a chat
+assistant, an AI tutor. Equally, no mention is not a clean bill of health:
+
+- Only the **landing page** is read. A feature deeper in the site won't show.
+- The page is read **as the server sends it**. Chat widgets and buttons that
+  JavaScript adds after the page loads are invisible to it.
+- Anything **behind a sign-in** is out of reach.
+
+Like the link check, it runs from your machine, not from inside a facility.
 
 ---
 
